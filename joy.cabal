@@ -1,0 +1,73 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: fc8839a6ca9aa4b0d9d3ac18277f219a70365a44d92a8f5decdc6e4680d58911
+
+name:           joy
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/joy#readme>
+homepage:       https://github.com/githubuser/joy#readme
+bug-reports:    https://github.com/githubuser/joy/issues
+author:         Owain Lewis
+maintainer:     owain@owainlewis.com
+copyright:      2019 Owain Lewis
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/joy
+
+library
+  exposed-modules:
+      Language.Joy
+      Language.Joy.Core
+      Language.Joy.VM
+  other-modules:
+      Paths_joy
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , mtl
+    , transformers
+  default-language: Haskell2010
+
+executable joy-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_joy
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , joy
+    , mtl
+    , transformers
+  default-language: Haskell2010
+
+test-suite joy-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_joy
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , mtl
+    , svm
+    , transformers
+  default-language: Haskell2010

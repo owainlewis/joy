@@ -1,0 +1,62 @@
+== Joy
+
+The Joy programming language
+
+```
+(Stack editing operators:)
+	EvA( dup   , [X   | S])  =  [X X | S]
+	EvA( swap  , [X Y | S])  =  [Y X | S]
+	EvA( pop   , [X   | S])  =         S
+	EvA( stack ,        S )  =  [S   | S]
+	EvA(unstack, [L    | S])  =  L         (L is a quotation of list)
+  (Numeric and Boolean operators and predicates:)
+	EvA( +   , [n1 n2 | S])  =  [n | S]    where n = (n2 + n1)
+	EvA( -   , [n1 n2 | S])  =  [n | S]    where n = (n2 - n1)
+	EvA( succ, [n1    | S])  =  [n | S]    where n = (n1 + 1)
+	EvA( <   , [n1 n2 | S])  =  [b | S]    where b = (n2 < n1)
+	EvA( and , [b1 b2 | S])  =  [b | S]    where b = (b2 and b1)
+	EvA( null, [n     | S])  =  [b | S]    where b = (n = 0)
+	EvA(small, [n     | S])  =  [b | S]    where b = (n < 2)
+  (List operators and predicates:)
+	EvA( cons  , [ R   F  | S])  =  [[F | R] | S]
+	EvA( first , [[F | R] | S])  =  [F       | S]
+	EvA( rest  , [[F | R] | S])  =  [     R  | S]
+	EvA( swons , [ F   R  | S])  =  [[F | R] | S]
+	EvA( uncons, [[F | R] | S])  =  [R F | S]
+	EvA( null  , [L | S])  =  [b | S]    where b = (L is empty)
+	Eva( small , [L | S])  =  [b | S]    where b = (L has < 2 members)
+  (Combinators:)
+	Eva( i   , [Q   | S])  =  EvP(Q, S)
+	EvA( x   , [Q   | S])  =  EvP(Q, [Q | S])
+	EvA( dip , [Q X | S])  =  [X | T]     where EvP(Q, S) = T
+	EvA(infra, [Q X | S])  =  [Y | S]     where EvP(Q, X) = Y
+	EvA( ifte, [E T I | S])  =
+	  if EvP(I, S) = [true | U]                (free U is arbitrary)
+		then EvP(T, S)  else EvP(E, S)
+	EvA( app2, [Q X1 X2 | S])  =  [Y1 Y2 | S]
+			  where EvP(Q, [X1 | S]) = [Y1 | U1]   (U1 is arbitrary)
+				and EvP(Q, [X2 | S]) = [Y2 | U2]   (U2 is arbitrary)
+	EvA( map , [Q [] | S])  =  [[] | S]
+	EvA( map , [Q [F1 | R1] | S])  =  [[F2 | R2] | S]
+			  where EvP(Q, [F1 | S]) = [F2 | U1]
+				and EvA( map, [Q R1 | S]) = [R2 | U2]
+	EvA( split , [Q [] | S])  =  [[] [] | S]
+	EvA( split , [Q [X | L] | S]  =
+	  (if EvP(Q, [X | S]) = [true | U]
+			  then [FL [X | TL] | S]  else [[X | FL] TL | S])
+		  where EvA( split, [Q L | S]) = [TL FL | S]
+	EvA( genrec , [R2 R1 T I | S])  =
+	  if EvP(I, S) = [true | U]  then EvP(T, S)
+	  else EvP(R2, [[I T R1 R2 genrec] | W])
+			  where EvP(R1, S) = W
+	EvA( linrec, [R2 R1 T I | S])  =
+	  if EvP(I, S) = [true | U]  then EvP(T , S)
+	  else EvP(R2, EvA(linrec, [R2 R1 I T | W]))
+			  where EvP(R1, S) = W
+	EvA( binrec, [R2 R1 T I | S])  =
+	  if EvP(I, S) = [true | U]  then EvP(T, S)
+	  else EvP(R2, [Y1 Y2 | V])
+			  where EvP(R1, S) = [X1 X2 | V]
+				and EvA(binrec, [R2 R1 T I X1 | V]) = [Y1 | U1]
+				and EvA(binrec, [R2 R1 T I X2 | V]) = [Y2 | U2]
+```
