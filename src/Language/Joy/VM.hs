@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module Language.Joy.VM (run) where
 
 import           Control.Monad.Except
@@ -88,8 +89,8 @@ eval = do
     (i:is) -> evalInstr i >> local (const is) eval
 
 -- Run a program and return either an error or the
-run :: Program -> IO (Either ProgramError ())
-run p = execVM p initState eval
+run :: Program -> IO ()
+run p = execVM p initState eval >> return ()
     where initState = VMS [] M.empty False
 
 runDev = run _program where

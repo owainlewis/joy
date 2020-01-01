@@ -25,6 +25,7 @@ dependencies:
 - transformers
 - mtl
 - containers
+- parsec >= 3.1.14.0
 
 library:
   source-dirs: src
