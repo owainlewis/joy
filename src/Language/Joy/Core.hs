@@ -8,8 +8,9 @@ where
 
 data Joy =
     JWord String
+  | JString String
   | JInt Int
-  | JFloat Float
+  | JFloat Double
   | JBool Bool
   | JChar Char
   | JQuote [Joy]
