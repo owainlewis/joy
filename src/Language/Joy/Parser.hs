@@ -10,16 +10,9 @@ import           Language.Joy.Core                      (Joy (..))
 
 joyDef :: Tok.LanguageDef st
 joyDef = emptyDef {
-           Tok.commentStart    = "/*"
-         , Tok.commentEnd      = "*/"
-         , Tok.commentLine     = "//"
-         , Tok.identStart      = letter
-         , Tok.identLetter     = alphaNum
-         , Tok.reservedNames   = [ "dup"
-                                 ]
-         , Tok.reservedOpNames = ["+", "-", "*", "/", ":="
-                                 , "<", ">", "and", "or", "not"
-                                 ]
+           Tok.commentLine     = "//"
+         , Tok.reservedNames   = ["dup", "swap", "dip", "i", "."]
+         , Tok.reservedOpNames = []
          }
 
 lexer :: Tok.GenTokenParser String u Identity
