@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 86826dc6f28fc4b5b8d2af7bfa3809f4bf0ba4a78dea12ca021bba059670d8d9
+-- hash: 6fa04f3d64e410c67b9e005dee9d74ece25c66c1d23a4ebdc694edef63cca653
 
 name:           joy
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
     , containers
     , mtl
     , parsec >=3.1.14.0
+    , text
     , transformers
   default-language: Haskell2010
 
@@ -56,6 +57,7 @@ executable joy-exe
     , joy
     , mtl
     , parsec >=3.1.14.0
+    , text
     , transformers
   default-language: Haskell2010
 
@@ -73,5 +75,6 @@ test-suite joy-test
     , mtl
     , parsec >=3.1.14.0
     , svm
+    , text
     , transformers
   default-language: Haskell2010

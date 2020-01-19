@@ -6,16 +6,20 @@ module Language.Joy.Core
     , dup')
 where
 
+data Instr =
+    DUP
+  | SWAP
+    deriving (Eq, Ord, Show)
+
 data Joy =
     JWord String
   | JString String
-  | JInt Int
+  | JInt Integer
   | JFloat Double
   | JBool Bool
   | JChar Char
   | JQuote [Joy]
---  | JSet (Set Joy)
---  | JList [Joy]
+  | JInstr Instr
     deriving (Eq, Ord, Show)
 
 type Program = [Joy]

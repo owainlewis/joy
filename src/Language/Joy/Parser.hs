@@ -1,37 +1,48 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-module Language.Joy.Parser () where
+module Language.Joy.Parser (readExpr) where
 
-import           Data.Functor.Identity                  (Identity)
-import           Text.ParserCombinators.Parsec
-import           Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token    as Tok
+import           Text.Parsec
+import qualified Text.Parsec.Language  as Lang
+import           Text.Parsec.Text
+import qualified Text.Parsec.Token     as Tok
 
-import           Language.Joy.Core                      (Joy (..))
+import           Control.Monad         (mzero)
+import           Data.Functor.Identity (Identity)
+import qualified Data.Text             as T
+import           Language.Joy.Core     (Joy (..))
 
-joyDef :: Tok.LanguageDef st
-joyDef = emptyDef {
-           Tok.commentLine     = "//"
-         , Tok.reservedNames   = ["dup", "swap", "dip", "i", "."]
-         , Tok.reservedOpNames = []
-         }
+lexer :: Tok.GenTokenParser T.Text () Identity
+lexer = Tok.makeTokenParser style
 
-lexer :: Tok.GenTokenParser String u Identity
-lexer = Tok.makeTokenParser joyDef
+style :: Tok.GenLanguageDef T.Text () Identity
+style = Lang.emptyDef {
+    Tok.commentStart = "{-"
+  , Tok.commentEnd = "-}"
+  , Tok.commentLine = ";"
+  , Tok.opStart = mzero
+  , Tok.opLetter = mzero
+  , Tok.identStart = letter <|> oneOf "!$%&*/:<=>?^_~"
+  , Tok.identLetter = digit <|> letter <|> oneOf "!$%&*/:<=>?^_~+-.@"
+  }
 
 whitespace :: Parser ()
 whitespace = Tok.whiteSpace lexer
 
+lexeme :: Parser a -> Parser a
+lexeme = Tok.lexeme lexer
+
 brackets = Tok.brackets lexer
 
-integer :: Parser Integer
-integer = Tok.integer lexer
+parseInteger :: Parser Joy
+parseInteger = JInt <$> Tok.integer lexer
 
-decimal :: Parser Joy
-decimal = JFloat <$> Tok.float lexer
+parseFloat :: Parser Joy
+parseFloat = JFloat <$> Tok.float lexer
 
-quotation :: Parser Joy
-quotation = brackets p
-  where p = JQuote <$> many parseExpr
+parseQuote :: Parser Joy
+parseQuote = brackets p
+  where p = JQuote <$> many joyVal
 
 -- Parse a string literal
 parseString :: Parser Joy
@@ -41,13 +52,11 @@ parseString = do
     char '"'
     return $ JString s
 
-parseExpr = quotation
+joyVal :: ParsecT T.Text () Identity Joy
+joyVal = (try parseFloat <|> parseInteger)
+     <|> parseString
+     <|> parseQuote
 
--- Bind whitespace later
-parseJoy :: Parser a -> String -> a
-parseJoy p str =  case parse p "" str of
-    Left err  -> error $ "parse error at " ++ (show err)
-    Right val -> val
-
-test = parseJoy parseExpr
-    where parseExpr = parseString
+readExpr :: T.Text -> Either ParseError Joy
+readExpr expr = parse (contents joyVal) "<stdin>" expr
+    where contents p = whitespace *> lexeme p <* eof
