@@ -1,5 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Language.Joy.Parser
+-- License     :  BSD-style (see the file LICENSE)
+-- Maintainer  :  Owain Lewis <owain@owainlewis.com>
+-- Stability   :  experimental
+--
+-- Parser for the Joy programming language
+----------------------------------------------------------------------------
 module Language.Joy.Parser (readExpr) where
 
 import           Text.Parsec
@@ -22,8 +31,10 @@ style = Lang.emptyDef {
   , Tok.commentLine = ";"
   , Tok.opStart = mzero
   , Tok.opLetter = mzero
-  , Tok.identStart = letter <|> oneOf "!$%&*/:<=>?^_~"
-  , Tok.identLetter = digit <|> letter <|> oneOf "!$%&*/:<=>?^_~+-.@"
+  -- Identifiers must start with
+  , Tok.identStart = letter <|> oneOf "@"
+  -- And be formed by ...
+  , Tok.identLetter = digit <|> letter <|> oneOf "!@"
   }
 
 whitespace :: Parser ()
@@ -32,8 +43,15 @@ whitespace = Tok.whiteSpace lexer
 lexeme :: Parser a -> Parser a
 lexeme = Tok.lexeme lexer
 
+brackets :: ParsecT T.Text () Identity a -> ParsecT T.Text () Identity a
 brackets = Tok.brackets lexer
 
+identifier :: Parser T.Text
+identifier = T.pack <$> (Tok.identifier lexer) <?> "identifier"
+
+-- | ----------------------------------------
+-- | Language Parsers
+-- | ----------------------------------------
 parseInteger :: Parser Joy
 parseInteger = JInt <$> Tok.integer lexer
 
@@ -44,19 +62,26 @@ parseQuote :: Parser Joy
 parseQuote = brackets p
   where p = JQuote <$> many joyVal
 
+-- | Parse a simple word
+parseWord :: Parser Joy
+parseWord = JWord <$> identifier <* spaces
+
 -- Parse a string literal
 parseString :: Parser Joy
 parseString = do
     char '"'
-    s <- many (noneOf "\"")
+    s <- T.pack <$> many (noneOf "\"")
     char '"'
     return $ JString s
+
+-- | ----------------------------------------
 
 joyVal :: ParsecT T.Text () Identity Joy
 joyVal = (try parseFloat <|> parseInteger)
      <|> parseString
      <|> parseQuote
+     <|> parseWord
 
-readExpr :: T.Text -> Either ParseError Joy
-readExpr expr = parse (contents joyVal) "<stdin>" expr
+readExpr :: T.Text -> Either ParseError [Joy]
+readExpr expr = parse (contents $ many joyVal) "<stdin>" expr
     where contents p = whitespace *> lexeme p <* eof

@@ -1,4 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Language.Joy.Core
+-- License     :  BSD-style (see the file LICENSE)
+-- Maintainer  :  Owain Lewis <owain@owainlewis.com>
+-- Stability   :  experimental
+--
+-- Basic AST and general structural operations for stacks
+----------------------------------------------------------------------------
 module Language.Joy.Core
     ( Joy(..)
     , Program
@@ -6,14 +15,16 @@ module Language.Joy.Core
     , dup')
 where
 
+import qualified Data.Text as T
+
 data Instr =
     DUP
   | SWAP
     deriving (Eq, Ord, Show)
 
 data Joy =
-    JWord String
-  | JString String
+    JWord T.Text
+  | JString T.Text
   | JInt Integer
   | JFloat Double
   | JBool Bool
@@ -34,11 +45,11 @@ data ProgramError =
 
 -- | Stack manipulation logic. We implement the following virtual machine operations
 --
--- EvA( dup   , [X   | S])  =  [X X | S]
--- EvA( swap  , [X Y | S])  =  [Y X | S]
--- EvA( pop   , [X   | S])  =         S
--- EvA( stack ,        S )  =  [S   | S]
--- EvA(unstack, [L    | S])  =  L         (L is a quotation of list)
+-- EvA( dup     , [X   | S])  =  [X X | S]
+-- EvA( swap    , [X Y | S])  =  [Y X | S]
+-- EvA( pop     , [X   | S])  =         S
+-- EvA( stack   ,        S )  =  [S   | S]
+-- EvA( unstack , [L   | S])  =  L (where L is a quotation of list)
 --
 
 withN :: Foldable t => Int -> (t a -> b) -> t a -> Either ProgramError b

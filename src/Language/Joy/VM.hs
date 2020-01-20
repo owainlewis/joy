@@ -3,6 +3,15 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Language.Joy.VM
+-- License     :  BSD-style (see the file LICENSE)
+-- Maintainer  :  Owain Lewis <owain@owainlewis.com>
+-- Stability   :  experimental
+--
+-- Defines the runtime virtual machine that is used to interpret Joy programs
+----------------------------------------------------------------------------
 module Language.Joy.VM (run) where
 
 import           Control.Monad.Except
