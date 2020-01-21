@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 -----------------------------------------------------------------------------
 -- |
@@ -98,13 +99,13 @@ eval = do
     (i:is) -> evalInstr i >> local (const is) eval
 
 -- Run a program and return either an error or the
-run :: Program -> IO ()
-run p = execVM p initState eval >> return ()
+-- run :: Program -> IO ()
+run :: Program -> IO (Either ProgramError ())
+run p = execVM p initState eval
     where initState = VMS [] M.empty False
 
 runDev = run _program where
-  _program = [ JInt 10
-             , JInt 5
+  _program = [ JInt 5
              , JWord "DUP"
              , JWord "PRINT"
              ]
