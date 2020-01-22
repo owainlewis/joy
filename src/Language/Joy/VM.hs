@@ -12,6 +12,10 @@
 -- Stability   :  experimental
 --
 -- Defines the runtime virtual machine that is used to interpret Joy programs
+--
+-- The machine consumes a list of instructions [PUSH 10, DUP, PRINT] that
+-- modify a runtime stack.
+--
 ----------------------------------------------------------------------------
 module Language.Joy.VM (run) where
 
@@ -22,10 +26,18 @@ import           Control.Monad.Writer
 import           Data.Map             (Map)
 import qualified Data.Map             as M
 import           Data.Monoid          ((<>))
-import           Data.Set             (Set)
-
+import qualified Data.Text            as T
 import           Language.Joy.Core    (Joy (..), Program, ProgramError (..),
                                        dup')
+
+-- | The virtual machine instruction set
+data Instruction =
+    PUSH Joy
+  | POP
+  | PRINT
+  | DUP
+  | DEFINE T.Text [Instruction] -- define x [dup swap pop]
+    deriving (Eq, Ord, Show)
 
 pluralize :: (Eq a, Num a) => a -> String -> String
 pluralize n s = if n == 1 then s else s ++ "s"
@@ -49,19 +61,19 @@ instance Functor VMS where
 
 type VMState = VMS Joy
 type Ex      = ExceptT ProgramError IO
-type VM a    = ReaderT Program (StateT VMState Ex) a
+type VM a    = ReaderT [Joy] (StateT VMState Ex) a
 
 newtype JoyMonad a = JoyMonad { unJoyMonad :: VM a }
   deriving ( Functor
            , Applicative
            , Monad
-           , MonadReader Program
+           , MonadReader [Joy]
            , MonadError ProgramError
            , MonadState VMState
            , MonadIO)
 
 -- Helper to run our VM
-execVM :: Program -> VMState -> JoyMonad a -> IO (Either ProgramError a)
+execVM :: [Joy] -> VMState -> JoyMonad a -> IO (Either ProgramError a)
 execVM program state (JoyMonad m) =
     runExceptT . flip evalStateT state $
         runReaderT m program
@@ -69,8 +81,7 @@ execVM program state (JoyMonad m) =
 modifyStack :: ([a] -> [b]) -> VMS a -> VMS b
 modifyStack f (VMS a b c) = VMS (f a) b c
 
-liftPure :: (MonadState (VMS a) m, MonadError e m) =>
-     ([a] -> Either e [a]) -> m ()
+liftPure :: (MonadState (VMS a) m, MonadError e m) => ([a] -> Either e [a]) -> m ()
 liftPure f = do
     VMS a b c <- get
     case (f a) of
@@ -80,12 +91,17 @@ liftPure f = do
 dup :: JoyMonad ()
 dup = liftPure dup'
 
+mapInstruction :: Joy -> Instruction
+mapInstruction (JWord "DUP")   = DUP
+mapInstruction (JWord "PRINT") = PRINT
+mapInstruction x               = PUSH x
+
 evalInstr :: Joy -> JoyMonad ()
 evalInstr instr =
-    case instr of
-        JWord "DUP"   -> dup
-        JWord "PRINT" -> get >>= (\(VMS a _ _) -> liftIO . print $ a)
-        _             -> modify (push instr) >> pure ()
+    case (mapInstruction instr) of
+        DUP   -> dup
+        PRINT -> get >>= (\(VMS a _ _) -> liftIO . print $ a)
+        _     -> modify (push instr) >> return ()
     where push instr =
             modifyStack (instr:)
 
@@ -100,12 +116,13 @@ eval = do
 
 -- Run a program and return either an error or the
 -- run :: Program -> IO ()
-run :: Program -> IO (Either ProgramError ())
+run :: [Joy] -> IO (Either ProgramError ())
 run p = execVM p initState eval
     where initState = VMS [] M.empty False
 
-runDev = run _program where
-  _program = [ JInt 5
-             , JWord "DUP"
-             , JWord "PRINT"
+runDev = run _fprogram where
+  _fprogram = [JInt 10]
+  _iprogram = [ PUSH (JInt 5)
+             , DUP
+             , PRINT
              ]

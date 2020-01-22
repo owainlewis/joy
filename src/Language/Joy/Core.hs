@@ -20,6 +20,7 @@ import qualified Data.Text as T
 data Instr =
     DUP
   | SWAP
+  | PRINT
     deriving (Eq, Ord, Show)
 
 data Joy =
@@ -30,11 +31,10 @@ data Joy =
   | JBool Bool
   | JChar Char
   | JQuote [Joy]
-  | JInstr Instr
+  | JInstruction Instr
     deriving (Eq, Ord, Show)
 
 type Program = [Joy]
-
 -- A simple function takes the current stack and modifies it
 -- returning either a well defined error or the modified stack
 type SimpleFunction = [Joy] -> Either ProgramError [Joy]
