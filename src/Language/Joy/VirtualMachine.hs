@@ -20,18 +20,53 @@
 ----------------------------------------------------------------------------
 module Language.Joy.VirtualMachine where
 
-import           Data.Map          (Map)
-import qualified Data.Text         as T
-import           Language.Joy.Core (Joy (..), Program, ProgramError (..))
+import           Control.Monad.Except
+import           Control.Monad.Reader
+import           Control.Monad.State
+import           Control.Monad.Writer
+import           Data.Map             (Map)
+import qualified Data.Map             as M
+import qualified Data.Text            as T
+import           Language.Joy.Core    (Joy (..), Program, ProgramError (..))
 
 data Instruction v =
     Push v
   | Pop
   | Apply (v -> v -> v)
 
+type JoyInstruction = Instruction Joy
+
 type Env = Map T.Text T.Text
 
 data VirtualMachine a = VirtualMachine {
     stack :: [a]
   , env   :: Env
-}
+} deriving ( Show )
+
+type JVM = VirtualMachine Joy
+type Ex      = ExceptT ProgramError IO
+type VM a    = ReaderT [JoyInstruction] (StateT JVM Ex) a
+
+newtype JoyMonad a = JoyMonad { unJoyMonad :: VM a }
+  deriving ( Functor
+           , Applicative
+           , Monad
+           -- Reads the incoming instruction set
+           , MonadReader [JoyInstruction]
+           , MonadError ProgramError
+           , MonadState JVM
+           , MonadIO)
+
+execVM :: [JoyInstruction] -> JVM -> JoyMonad a -> IO (Either ProgramError a)
+execVM program state (JoyMonad m) = runExceptT . flip evalStateT state $ runReaderT m program
+
+eval :: JoyMonad JVM
+eval = do
+  instr <- ask
+  case instr of
+    []     -> get >>= return
+    (i:is) -> local (const is) eval
+
+run :: [JoyInstruction] -> IO (Either ProgramError JVM)
+run instructions = execVM instructions initState eval
+    where initState = VirtualMachine { stack = [], env = M.empty }
