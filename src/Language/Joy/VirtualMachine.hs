@@ -68,6 +68,7 @@ newtype JoyMonad a = JoyMonad { unJoyMonad :: VM a }
            -- Reads the incoming instruction set
            , MonadReader [JoyInstruction]
            , MonadError ProgramError
+           -- State Monad over the VirtualMachine structure
            , MonadState JVM
            , MonadIO)
 
@@ -76,9 +77,13 @@ execVM program state (JoyMonad m) = runExceptT . flip evalStateT state $ runRead
 
 evaluate :: JoyInstruction -> JoyMonad JVM
 evaluate instr = case instr of
-    Push x -> modify (push x) >> get >>= return
-    -- TODO clean this up just to make things compile
-    where push instr = (\vm -> VirtualMachine { stack = (instr : (stack vm)), env = env vm })
+    -- Print the current virtual machine stack
+    Print -> do
+      vm <- get
+      liftIO . print . show $ (stack vm)
+      return vm
+    -- Push a value onto the virtual machine stack
+    Push x -> modify (\vm -> vm { stack = (x : stack vm) }) >> get >>= return
 
 eval :: JoyMonad JVM
 eval = do
