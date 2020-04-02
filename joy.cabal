@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1b0a77fa24e7cd225a90857d1c76931f24a21ada23ca48c5c777a1ac7cebe0d8
+-- hash: 9c598cb7d06e472549dd9f0320415bc12c22378ba18dd779650218e7984078ab
 
 name:           joy
 version:        0.1.0.0
@@ -31,7 +31,6 @@ library
       Language.Joy.Core
       Language.Joy.Parser
       Language.Joy.VirtualMachine
-      Language.Joy.VM
   other-modules:
       Paths_joy
   hs-source-dirs:
