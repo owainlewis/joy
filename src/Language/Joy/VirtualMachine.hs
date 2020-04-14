@@ -1,4 +1,4 @@
-{-# LANGUAGE ConstraintKinds            #-}
+stack install brittany{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}

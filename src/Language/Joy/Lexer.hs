@@ -10,11 +10,11 @@
 --------------------------------------------------------------------
 module Lexer (lexer) where
 
-import Text.Parsec.String (Parser)
-import Text.Parsec.Language (emptyDef)
-import Text.Parsec.Prim (many)
+import           Text.Parsec.Language (emptyDef)
+import           Text.Parsec.Prim     (many)
+import           Text.Parsec.String   (Parser)
 
-import qualified Text.Parsec.Token as Tok
+import qualified Text.Parsec.Token    as Tok
 
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style

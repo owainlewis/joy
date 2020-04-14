@@ -8,6 +8,7 @@
 --
 -- Basic AST and general structural operations for stacks
 ----------------------------------------------------------------------------
+
 module Language.Joy.Core
     ( Joy(..)
     , Program

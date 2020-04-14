@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Language.Joy.AST (Term(..))where
+module Language.Joy.AST (Term(..)) where
 
 -- See http://www.kevinalbrecht.com/code/joy-mirror/plain-manual.html
 data Lit = Boolean Bool

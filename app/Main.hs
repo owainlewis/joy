@@ -1,8 +1,7 @@
 module Main ( main ) where
 
-import Control.Monad(unless)
-
-import System.IO(hFlush, getLine, stdout)
+import           Control.Monad (unless)
+import           System.IO     (getLine, hFlush, stdout)
 
 readOnce :: IO String
 readOnce = putStr "JOY> "
