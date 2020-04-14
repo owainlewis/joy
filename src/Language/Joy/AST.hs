@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Language.Joy.AST (Term(..))where
 
-type Name = String
-
-data Term = Word Name
-          | List [Term]
-          | Number Integer
-          | Str String
-          | Func Name [Term]
+-- See http://www.kevinalbrecht.com/code/joy-mirror/plain-manual.html
+data Lit = Boolean Bool
+         | Char Char
+         | Integer Integer
+         | Float Float
+         | String String
+         | Identifier String
+         | List [Lit]
     deriving (Eq, Ord, Show)

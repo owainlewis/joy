@@ -1,10 +1,16 @@
-module Main where
+module Main ( main ) where
 
-import Language.Joy
+import Control.Monad(unless)
 
-program :: Program
-program = [ JInt 10
-          , JWord "DUP"
-          ]
+import System.IO(hFlush, getLine, stdout)
 
-main = run program
+readOnce :: IO String
+readOnce = putStr "JOY> "
+        >> hFlush stdout
+        >> getLine
+
+main :: IO ()
+main = do
+    input <- readOnce
+    unless (input == "quit")
+      $ putStrLn input >> main
