@@ -2,7 +2,6 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Language.Joy.Core
--- License     :  BSD-style (see the file LICENSE)
 -- Maintainer  :  Owain Lewis <owain@owainlewis.com>
 -- Stability   :  experimental
 --

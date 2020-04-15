@@ -2,6 +2,17 @@
 
 The Joy programming language
 
+== Definitions
+
+```
+ step2 ==
+  [[dup] dip]  swoncat
+  [step pop]  cons
+  cons
+  step
+;
+```
+
 ```
 (Stack editing operators:)
 	EvA( dup   , [X   | S])  =  [X X | S]

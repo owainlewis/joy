@@ -1,4 +1,4 @@
-stack install brittany{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -6,7 +6,6 @@ stack install brittany{-# LANGUAGE ConstraintKinds            #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Language.Joy.VirtualMachine
--- License     :  BSD-style (see the file LICENSE)
 -- Maintainer  :  Owain Lewis <owain@owainlewis.com>
 -- Stability   :  experimental
 --
