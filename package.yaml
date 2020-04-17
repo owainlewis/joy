@@ -1,25 +1,19 @@
 name:                joy
 version:             0.1.0.0
-github:              "githubuser/joy"
-license:             BSD3
+github:              "owainlewis/joy"
+license:             MIT
 author:              "Owain Lewis"
 maintainer:          "owain@owainlewis.com"
-copyright:           "2019 Owain Lewis"
+copyright:           "2020 Owain Lewis"
 
 extra-source-files:
 - README.md
 - ChangeLog.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
+synopsis:            A compiler / interpreter for the Joy programing language
+category:            Language
 description:         Please see the README on GitHub at <https://github.com/githubuser/joy#readme>
 
-# TODO lock these down
 dependencies:
 - base >= 4.7 && < 5
 - transformers
@@ -51,4 +45,5 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - svm
+    - hspec
+    - joy

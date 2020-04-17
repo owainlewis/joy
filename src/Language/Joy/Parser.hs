@@ -25,17 +25,15 @@ parseBoolean = Lexer.lexeme $ try parseTrue <|> parseFalse
       parseTrue  = (\_ -> Literal $ Boolean True)  <$> string "true"
       parseFalse = (\_ -> Literal $ Boolean False) <$> string "false"
 
- -- Char
 parseChar :: Parser Joy
 parseChar = do
     char '\''
     c <- Lexer.lexeme $ anyChar
+    optional $ char '\''
     return $ Literal . Char $ c
 
--- Numbers
 parseInteger :: Parser Joy
 parseInteger = Literal . Integer <$> Lexer.integer
-
 
 parseFloat :: Parser Joy
 parseFloat = Literal . Float <$> Lexer.float
@@ -56,7 +54,7 @@ parseList = Lexer.brackets p
 
 -- Identifier
 parseIdentifier :: Parser Joy
-parseIdentifier = Literal . Identifier <$> many1 letter -- (TODO allow other chars here)
+parseIdentifier = Literal . Identifier <$> Lexer.lexeme (many1 letter) -- (TODO allow other chars here)
 
 -- | Parser
 

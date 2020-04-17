@@ -24,6 +24,6 @@ instance Show Joy where
   show (Literal (Integer a))    = show a
   show (Literal (Float a))      = show a
   show (Literal (String a))     = show a
-  show (Literal (Identifier a)) = "IDENT " ++ show a
+  show (Literal (Identifier a)) = show a
   show (List a)                 = show a
   show (Definition k v)         = k ++ "==" ++ show v
