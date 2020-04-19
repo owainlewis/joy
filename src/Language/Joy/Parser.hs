@@ -52,9 +52,20 @@ parseList = Lexer.brackets p
     where
       p = List <$> many joyVal
 
+
+
 -- Identifier
 parseIdentifier :: Parser Joy
 parseIdentifier = Literal . Identifier <$> Lexer.lexeme (many1 letter) -- (TODO allow other chars here)
+
+parseDefinition :: Parser Joy
+parseDefinition = do
+    k <- Lexer.lexeme (many1 letter)
+    string "=="
+    Lexer.whitespace
+    char ';'
+    return $ Definition k []
+
 
 -- | Parser
 
@@ -64,6 +75,7 @@ joyVal = parseString
      <|> (try parseFloat <|> parseInteger)
      <|> (try parseBoolean)
      <|> parseChar
+     <|> parseDefinition
      <|> parseIdentifier
 
 readExpr :: String -> Either ParseError [Joy]

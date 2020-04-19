@@ -4,7 +4,6 @@ module Language.Joy.AST (Lit(..), Joy(..)) where
 import           Data.Set (Set)
 
 -- See http://www.kevinalbrecht.com/code/joy-mirror/plain-manual.html
-
 data Lit = Boolean Bool
          | Char Char
          | Integer Integer
@@ -26,4 +25,4 @@ instance Show Joy where
   show (Literal (String a))     = show a
   show (Literal (Identifier a)) = show a
   show (List a)                 = show a
-  show (Definition k v)         = k ++ "==" ++ show v
+  show (Definition k v)         = "define " ++ k ++ " == " ++ show v
