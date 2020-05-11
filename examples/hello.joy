@@ -1,0 +1,3 @@
+"HELLO"
+
+1 32 dup i swap dip [1 2] i dip

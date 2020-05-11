@@ -51,20 +51,29 @@ parseString = do
 
 -- List
 parseList :: Parser Joy
-parseList = Lexer.brackets p where p = List <$> many joyVal
+parseList = Lexer.brackets (Lexer.lexeme p) where p = List <$> many joyVal
 
 -- Identifier
 parseIdentifier :: Parser Joy
-parseIdentifier =
-  Literal . Identifier <$> Lexer.lexeme (many1 (noneOf " \n\t"))
+parseIdentifier = Literal . Identifier <$> Lexer.lexeme (many1 letter)
 
 parseDefinition :: Parser Joy
 parseDefinition = do
   k <- Lexer.lexeme (many1 letter)
   string "=="
   Lexer.whitespace
-  char ';'
-  return $ Definition k []
+  forms <- many joyVal
+  --char ';'
+  return $ Definition k forms
+
+parseDefinitionList :: Parser Joy
+parseDefinitionList = do
+  string "DEFINE"
+  Lexer.whitespace
+  forms <- sepBy parseDefinition (Lexer.lexeme $ char ';')
+  Lexer.whitespace
+  char '.'
+  return $ DefinitionList forms
 
 -- | Parser
 joyVal :: Parser Joy
@@ -74,12 +83,13 @@ joyVal =
     <|> (try parseFloat <|> parseInteger)
     <|> (try parseBoolean)
     <|> parseChar
-    <|> parseDefinition
+    <|> parseDefinitionList
     <|> parseIdentifier
+
 
 readJoyExpr :: String -> Either ParseError [Joy]
 readJoyExpr expr = parse (contents $ many joyVal) "<stdin>" expr
   where contents p = Lexer.whitespace *> Lexer.lexeme p <* eof
 
---readFile :: FilePath -> IO (Either ParseError [Joy])
+readJoyFile :: FilePath -> IO (Either ParseError [Joy])
 readJoyFile f = readJoyExpr <$> IO.readFile f
