@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --------------------------------------------------------------------
 -- |
 -- Module    :  Lexer
@@ -7,25 +8,27 @@
 -- Portability: non-portable
 --
 --------------------------------------------------------------------
-module Language.Joy.Lexer ( integer
-             , float
-             , whitespace
-             , lexeme
-             , brackets
-             , braces
-             ) where
+module Language.Joy.Lexer
+  ( integer
+  , float
+  , whitespace
+  , lexeme
+  , brackets
+  , braces
+  )
+where
 
-import           Text.Parsec.Language (emptyDef)
-import           Text.Parsec.String   (Parser)
-import qualified Text.Parsec.Token    as Tok
+import           Text.Parsec.Language           ( emptyDef )
+import           Text.Parsec.String             ( Parser )
+import qualified Text.Parsec.Token             as Tok
 
 lexer :: Tok.TokenParser ()
 lexer = Tok.makeTokenParser style
-  where style = emptyDef {
-    Tok.commentLine     = "#"
-  , Tok.reservedOpNames = []
-  , Tok.reservedNames   = ["DEFINE", "LIBRA", "HIDING", "IN"]
-  }
+ where
+  style = emptyDef { Tok.commentLine     = "#"
+                   , Tok.reservedOpNames = []
+                   , Tok.reservedNames   = ["DEFINE", "LIBRA", "HIDING", "IN"]
+                   }
 
 integer :: Parser Integer
 integer = Tok.integer lexer
@@ -44,4 +47,3 @@ whitespace = Tok.whiteSpace lexer
 
 lexeme :: Parser a -> Parser a
 lexeme = Tok.lexeme lexer
-

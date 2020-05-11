@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Language.Joy where
 
-import qualified Control.Arrow       as Arrow
+import qualified Control.Arrow                 as Arrow
 import           Language.Joy.AST
 import           Language.Joy.Parser
 

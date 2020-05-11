@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 -----------------------------------------------------------------------------
 -- |
@@ -9,13 +10,14 @@
 ----------------------------------------------------------------------------
 
 module Language.Joy.Core
-    ( Joy(..)
-    , Program
-    , ProgramError(..)
-    , dup')
+  ( Joy(..)
+  , Program
+  , ProgramError(..)
+  , dup'
+  )
 where
 
-import qualified Data.Text as T
+import qualified Data.Text                     as T
 
 data Instr =
     DUP
@@ -54,10 +56,8 @@ data ProgramError =
 
 withN :: Foldable t => Int -> (t a -> b) -> t a -> Either ProgramError b
 withN n f s =
-  let l = length s in
-  if  l < n then Left $ ArityError n l
-            else Right (f s)
+  let l = length s in if l < n then Left $ ArityError n l else Right (f s)
 
 -- DEFINE dup as [X | S]  =>  [X X | S]
 dup' :: [Joy] -> Either ProgramError [Joy]
-dup' s = withN 1 f s where f (x:xs) = x:x:xs
+dup' s = withN 1 f s where f (x : xs) = x : x : xs

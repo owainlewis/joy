@@ -1,3 +1,5 @@
 .stack-work/
 svm.cabal
 *~.idea
+dist-newstyle
+stack.yaml.lock

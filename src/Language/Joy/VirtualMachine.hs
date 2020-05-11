@@ -23,10 +23,13 @@ import           Control.Monad.Except
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
-import           Data.Map             (Map)
-import qualified Data.Map             as M
-import qualified Data.Text            as T
-import           Language.Joy.Core    (Joy (..), Program, ProgramError (..))
+import           Data.Map                       ( Map )
+import qualified Data.Map                      as M
+import qualified Data.Text                     as T
+import           Language.Joy.Core              ( Joy(..)
+                                                , Program
+                                                , ProgramError(..)
+                                                )
 
 -- | The virtual machine instruction set
 data Instruction v =
@@ -36,8 +39,8 @@ data Instruction v =
   | Print
 
 instance Show a => Show (Instruction a) where
-  show (Push v)  = "push " ++ show v
-  show (Pop)     = "pop "
+  show (Push v ) = "push " ++ show v
+  show (Pop    ) = "pop "
   show (Apply _) = "apply"
 
 -- | Type alias for the virtual machine environment
@@ -51,13 +54,14 @@ data VirtualMachine a = VirtualMachine {
 } deriving ( Show )
 
 -- Update the virtual machine stack by applying a function over it (fmap)
-modifyStack :: VirtualMachine a -> ((VirtualMachine b -> [b]) -> [c]) -> VirtualMachine c
+modifyStack
+  :: VirtualMachine a -> ((VirtualMachine b -> [b]) -> [c]) -> VirtualMachine c
 modifyStack vm f = vm { stack = f stack }
 
 type JoyInstruction = Instruction Joy
 
-type JVM  = VirtualMachine Joy
-type Ex   = ExceptT ProgramError IO
+type JVM = VirtualMachine Joy
+type Ex = ExceptT ProgramError IO
 type VM a = ReaderT [JoyInstruction] (StateT JVM Ex) a
 
 newtype JoyMonad a = JoyMonad { unJoyMonad :: VM a }
@@ -72,25 +76,26 @@ newtype JoyMonad a = JoyMonad { unJoyMonad :: VM a }
            , MonadIO)
 
 execVM :: [JoyInstruction] -> JVM -> JoyMonad a -> IO (Either ProgramError a)
-execVM program state (JoyMonad m) = runExceptT . flip evalStateT state $ runReaderT m program
+execVM program state (JoyMonad m) =
+  runExceptT . flip evalStateT state $ runReaderT m program
 
 evaluate :: JoyInstruction -> JoyMonad JVM
 evaluate instr = case instr of
     -- Print the current virtual machine stack
-    Print -> do
-      vm <- get
-      liftIO . print . show $ (stack vm)
-      return vm
-    -- Push a value onto the virtual machine stack
-    Push x -> modify (\vm -> vm { stack = (x : stack vm) }) >> get >>= return
+  Print -> do
+    vm <- get
+    liftIO . print . show $ (stack vm)
+    return vm
+  -- Push a value onto the virtual machine stack
+  Push x -> modify (\vm -> vm { stack = (x : stack vm) }) >> get >>= return
 
 eval :: JoyMonad JVM
 eval = do
   instr <- ask
   case instr of
-    []     -> get >>= return
-    (i:is) -> evaluate i >> local (const is) eval
+    []       -> get >>= return
+    (i : is) -> evaluate i >> local (const is) eval
 
 run :: [JoyInstruction] -> IO (Either ProgramError JVM)
 run instructions = execVM instructions initState eval
-    where initState = VirtualMachine { stack = [], env = M.empty }
+  where initState = VirtualMachine { stack = [], env = M.empty }
