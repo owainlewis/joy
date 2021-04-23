@@ -37,22 +37,12 @@ data Joy =
     deriving (Eq, Ord, Show)
 
 type Program = [Joy]
--- A simple function takes the current stack and modifies it
--- returning either a well defined error or the modified stack
+
 type SimpleFunction = [Joy] -> Either ProgramError [Joy]
 
 data ProgramError =
     ArityError Int Int -- (expected, actual)
     deriving (Eq, Ord)
-
--- | Stack manipulation logic. We implement the following virtual machine operations
---
--- EvA( dup     , [X   | S])  =  [X X | S]
--- EvA( swap    , [X Y | S])  =  [Y X | S]
--- EvA( pop     , [X   | S])  =         S
--- EvA( stack   ,        S )  =  [S   | S]
--- EvA( unstack , [L   | S])  =  L (where L is a quotation of list)
---
 
 withN :: Foldable t => Int -> (t a -> b) -> t a -> Either ProgramError b
 withN n f s =
