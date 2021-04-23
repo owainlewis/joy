@@ -68,10 +68,8 @@ newtype JoyMonad a = JoyMonad { unJoyMonad :: VM a }
   deriving ( Functor
            , Applicative
            , Monad
-           -- Reads the incoming instruction set
            , MonadReader [JoyInstruction]
            , MonadError ProgramError
-           -- State Monad over the VirtualMachine structure
            , MonadState JVM
            , MonadIO)
 
