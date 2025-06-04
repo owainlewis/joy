@@ -7,7 +7,7 @@ maintainer:          "owain@owainlewis.com"
 copyright:           "2020 Owain Lewis"
 
 extra-source-files:
-- README.md
+- README.adoc
 - ChangeLog.md
 
 synopsis:            A compiler / interpreter for the Joy programing language

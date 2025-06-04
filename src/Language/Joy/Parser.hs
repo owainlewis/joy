@@ -63,7 +63,7 @@ parseDefinition = do
   string "=="
   Lexer.whitespace
   forms <- many joyVal
-  --char ';'
+  optional $ char ';'
   return $ Definition k forms
 
 parseDefinitionList :: Parser Joy

@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: de9b157f5fcbd4c832ac74f8e9541b12a102869b0a4bcf81fc49bf1178a42b37
+-- hash: e9445c04c5611593cafb3a258a15a1951a1b59b4abd474700cccceb87f0d8888
 
 name:           joy
 version:        0.1.0.0
@@ -70,6 +70,7 @@ test-suite joy-test
   main-is: Spec.hs
   other-modules:
       Language.Joy.ParserSpec
+      Language.Joy.VMSpec
       Paths_joy
   hs-source-dirs:
       test

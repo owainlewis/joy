@@ -35,13 +35,30 @@ import           Language.Joy.Core              ( Joy(..)
 data Instruction v =
     Push v
   | Pop
+  | Dup
+  | Swap
   | Apply (v -> v -> v)
+  | Apply1 (v -> v)
+  | Cons
+  | First
+  | Rest
+  | Dip
+  | I  -- Execute quotation
   | Print
 
 instance Show a => Show (Instruction a) where
   show (Push v ) = "push " ++ show v
-  show (Pop    ) = "pop "
+  show (Pop    ) = "pop"
+  show (Dup    ) = "dup"
+  show (Swap   ) = "swap"
   show (Apply _) = "apply"
+  show (Apply1 _) = "apply1"
+  show (Cons   ) = "cons"
+  show (First  ) = "first"
+  show (Rest   ) = "rest"
+  show (Dip    ) = "dip"
+  show (I      ) = "i"
+  show (Print  ) = "print"
 
 -- | Type alias for the virtual machine environment
 type Env = Map T.Text T.Text
@@ -84,8 +101,92 @@ evaluate instr = case instr of
     vm <- get
     liftIO . print . show $ (stack vm)
     return vm
+    
   -- Push a value onto the virtual machine stack
   Push x -> modify (\vm -> vm { stack = (x : stack vm) }) >> get >>= return
+  
+  -- Pop the top value from the stack
+  Pop -> do
+    vm <- get
+    case stack vm of
+      []     -> throwError $ ArityError 1 0
+      (_:xs) -> put (vm { stack = xs }) >> get >>= return
+      
+  -- Duplicate the top value on the stack: [X | S] => [X X | S]
+  Dup -> do
+    vm <- get
+    case stack vm of
+      []     -> throwError $ ArityError 1 0
+      (x:xs) -> put (vm { stack = x : x : xs }) >> get >>= return
+      
+  -- Swap the top two values on the stack: [X Y | S] => [Y X | S]
+  Swap -> do
+    vm <- get
+    case stack vm of
+      (x:y:xs) -> put (vm { stack = y : x : xs }) >> get >>= return
+      _        -> throwError $ ArityError 2 (length $ stack vm)
+      
+  -- Apply a binary function to the top two values on the stack
+  Apply f -> do
+    vm <- get
+    case stack vm of
+      (x:y:xs) -> do
+        -- Note: this doesn't handle type errors yet
+        put (vm { stack = f y x : xs }) 
+        get >>= return
+      _ -> throwError $ ArityError 2 (length $ stack vm)
+      
+  -- Apply a unary function to the top value on the stack
+  Apply1 f -> do
+    vm <- get
+    case stack vm of
+      (x:xs) -> do
+        put (vm { stack = f x : xs })
+        get >>= return
+      _ -> throwError $ ArityError 1 0
+      
+  -- Cons: [F R | S] => [[F | R] | S]
+  Cons -> do
+    vm <- get
+    case stack vm of
+      (JQuote q:x:xs) -> put (vm { stack = JQuote (x : q) : xs }) >> get >>= return
+      _ -> throwError $ ArityError 2 (length $ stack vm)
+      
+  -- First: [[F | R] | S] => [F | S]
+  First -> do
+    vm <- get
+    case stack vm of
+      (JQuote (x:_):xs) -> put (vm { stack = x : xs }) >> get >>= return
+      _ -> throwError $ ArityError 1 (length $ stack vm)
+      
+  -- Rest: [[F | R] | S] => [R | S]
+  Rest -> do
+    vm <- get
+    case stack vm of
+      (JQuote (_:rs):xs) -> put (vm { stack = JQuote rs : xs }) >> get >>= return
+      _ -> throwError $ ArityError 1 (length $ stack vm)
+      
+  -- i: [Q | S] => ... (executes quotation Q)
+  I -> do
+    vm <- get
+    case stack vm of
+      (JQuote q:xs) -> do
+        put (vm { stack = xs })
+        -- Run the quotation
+        -- This is a simplification; a proper implementation would recurse
+        return vm
+      _ -> throwError $ ArityError 1 (length $ stack vm)
+      
+  -- dip: [Q X | S] => [X | T] (executes Q with X removed, then puts X back)
+  Dip -> do
+    vm <- get
+    case stack vm of
+      (x:JQuote q:xs) -> do
+        put (vm { stack = JQuote q : xs })
+        -- Execute quotation then restore x
+        -- This is a simplification
+        return vm
+      _ -> throwError $ ArityError 2 (length $ stack vm)
 
 eval :: JoyMonad JVM
 eval = do
