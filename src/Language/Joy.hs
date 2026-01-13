@@ -1,62 +1,113 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Language.Joy 
-  ( runJoy
-  , evalJoy
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Language.Joy
+-- Maintainer  :  Owain Lewis <owain@owainlewis.com>
+-- Stability   :  experimental
+--
+-- Joy is a concatenative, stack-based programming language.
+-- This module provides the main API for parsing and executing Joy programs.
+--
+-- Example usage:
+--
+-- >>> runJoy "1 2 +"
+-- Right [3]
+--
+-- >>> runJoy "[1 2 3] [dup *] map"
+-- Right [[1, 4, 9]]
+--
+----------------------------------------------------------------------------
+module Language.Joy
+  ( -- * Running Joy programs
+    runJoy
   , runJoyFile
+  , evalJoy
+    -- * Types
+  , Joy(..)
+  , Stack
+  , VMError(..)
+  , VMState(..)
+    -- * Lower-level API
+  , parseJoy
+  , astToJoy
+  , runProgram
+  , runProgramWithEnv
   )
 where
 
 import qualified Control.Arrow                 as Arrow
-import           Data.Either                    (either)
+import qualified Data.Map.Strict               as M
 import qualified Data.Text                     as T
-import           Language.Joy.AST
-import           Language.Joy.Core              (ProgramError(..), Joy(..), Program)
-import           Language.Joy.Parser
-import           Language.Joy.VirtualMachine    (JoyInstruction(..), run, Push)
+import           Language.Joy.AST              (Lit(..), Joy(..))
+import qualified Language.Joy.AST              as AST
+import           Language.Joy.Parser           (readJoyExpr, readJoyFile)
+import           Language.Joy.VirtualMachine   ( Joy(..)
+                                               , Stack
+                                               , VMError(..)
+                                               , VMState(..)
+                                               , runProgram
+                                               , runProgramWithEnv
+                                               )
+import qualified Language.Joy.VirtualMachine   as VM
 
--- | Parse Joy source code
-runJoy :: String -> Either String [Joy]
-runJoy s = Arrow.left show $ readJoyExpr s
+-- | Parse Joy source code into AST
+parseJoy :: String -> Either String [AST.Joy]
+parseJoy s = Arrow.left show $ readJoyExpr s
 
--- | Parse and evaluate Joy source code
-evalJoy :: String -> IO (Either ProgramError [JoyInstruction])
-evalJoy s = do
-  case readJoyExpr s of
-    Left err -> return $ Left (ArityError 0 0) -- Replace with better error handling
-    Right exprs -> do
-      let instructions = concatMap astToInstructions exprs
-      result <- run instructions
-      return $ Right instructions
+-- | Convert AST Joy to VM Joy value
+astToJoy :: AST.Joy -> VM.Joy
+astToJoy (AST.Literal (Boolean b))   = VM.JBool b
+astToJoy (AST.Literal (Char c))      = VM.JChar c
+astToJoy (AST.Literal (Integer i))   = VM.JInt i
+astToJoy (AST.Literal (Float f))     = VM.JFloat f
+astToJoy (AST.Literal (String s))    = VM.JString (T.pack s)
+astToJoy (AST.Literal (Identifier i)) = VM.JWord (T.pack i)
+astToJoy (AST.List js)               = VM.JQuote (map astToJoy js)
+astToJoy (AST.Definition name body)  = VM.JQuote [VM.JWord "define", VM.JWord (T.pack name), VM.JQuote (map astToJoy body)]
+astToJoy (AST.DefinitionList defs)   = VM.JQuote (map astToJoy defs)
 
--- | Run a Joy program from a file
-runJoyFile :: FilePath -> IO (Either String [Joy])
+-- | Convert AST to a flat list of VM Joy values (a program)
+astToProgram :: [AST.Joy] -> [VM.Joy]
+astToProgram = concatMap expandAst
+  where
+    expandAst :: AST.Joy -> [VM.Joy]
+    expandAst (AST.Literal (Boolean b))    = [VM.JBool b]
+    expandAst (AST.Literal (Char c))       = [VM.JChar c]
+    expandAst (AST.Literal (Integer i))    = [VM.JInt i]
+    expandAst (AST.Literal (Float f))      = [VM.JFloat f]
+    expandAst (AST.Literal (String s))     = [VM.JString (T.pack s)]
+    expandAst (AST.Literal (Identifier i)) = [VM.JWord (T.pack i)]
+    expandAst (AST.List js)                = [VM.JQuote (concatMap expandAst js)]
+    -- Definitions need special handling - store in environment
+    expandAst (AST.Definition name body)   =
+      -- Create a definition: this pushes a special marker that the VM handles
+      [VM.JQuote (concatMap expandAst body), VM.JWord (T.pack name), VM.JWord "define"]
+    expandAst (AST.DefinitionList defs)    = concatMap expandAst defs
+
+-- | Parse and run a Joy program, returning the final stack
+--
+-- >>> runJoy "1 2 +"
+-- Right [3]
+--
+-- >>> runJoy "5 [0 =] [1] [dup 1 - swap [*] dip] ifte"
+-- Right [120]
+runJoy :: String -> Either String Stack
+runJoy s = do
+  ast <- parseJoy s
+  let program = astToProgram ast
+  Arrow.left show $ runProgram program
+
+-- | Parse and run a Joy program from a file
+runJoyFile :: FilePath -> IO (Either String Stack)
 runJoyFile path = do
-  result <- readJoyFile path
-  return $ Arrow.left show result
+  contents <- readFile path
+  return $ runJoy contents
 
--- | Convert AST to VM instructions
-astToInstructions :: Joy -> [JoyInstruction]
-astToInstructions (Literal (Boolean b)) = [Push (JBool b)]
-astToInstructions (Literal (Char c)) = [Push (JChar c)]
-astToInstructions (Literal (Integer i)) = [Push (JInt i)]
-astToInstructions (Literal (Float f)) = [Push (JFloat f)]
-astToInstructions (Literal (String s)) = [Push (JString (T.pack s))]
-astToInstructions (Literal (Identifier i)) = [Push (JWord (T.pack i))]
-astToInstructions (List js) = [Push (JQuote (map astToCore js))]
-astToInstructions (Definition name forms) = 
-  -- For now, just convert the body to instructions
-  concatMap astToInstructions forms
-astToInstructions (DefinitionList defs) = 
-  concatMap astToInstructions defs
-
--- | Convert AST Joy to Core Joy
-astToCore :: Joy -> Core.Joy
-astToCore (Literal (Boolean b)) = JBool b
-astToCore (Literal (Char c)) = JChar c
-astToCore (Literal (Integer i)) = JInt i
-astToCore (Literal (Float f)) = JFloat f
-astToCore (Literal (String s)) = JString (T.pack s)
-astToCore (Literal (Identifier i)) = JWord (T.pack i)
-astToCore (List js) = JQuote (map astToCore js)
-astToCore (Definition _ _) = JWord (T.pack "definition")
-astToCore (DefinitionList _) = JWord (T.pack "definition-list")
+-- | Evaluate Joy source and return the final stack (IO version for backwards compat)
+evalJoy :: String -> IO (Either VMError Stack)
+evalJoy s = do
+  case parseJoy s of
+    Left err -> return $ Left (RuntimeError (T.pack err))
+    Right ast -> do
+      let program = astToProgram ast
+      return $ runProgram program

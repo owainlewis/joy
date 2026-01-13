@@ -1,0 +1,22 @@
+# Basic Joy Examples
+# Run with: stack run < examples/basics.joy
+
+# Simple arithmetic
+1 2 +         # => 3
+10 3 -        # => 7
+4 5 *         # => 20
+10 4 /        # => 2.5
+
+# Stack operations
+5 dup         # => 5 5
+1 2 swap      # => 2 1
+1 2 3 pop     # => 1 2
+
+# Square a number
+5 dup *       # => 25
+
+# List operations
+[1 2 3]       # => [1 2 3]
+1 [2 3] cons  # => [1 2 3]
+[1 2 3] first # => 1
+[1 2 3] rest  # => [2 3]

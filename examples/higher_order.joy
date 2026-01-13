@@ -1,0 +1,28 @@
+# Higher-Order Combinators in Joy
+
+# Map - apply function to each element
+[1 2 3 4 5] [dup *] map
+# Result: [1 4 9 16 25]
+
+# Filter - select elements matching predicate
+[1 2 3 4 5 6 7 8 9 10] [5 >] filter
+# Result: [6 7 8 9 10]
+
+# Fold - reduce list to single value
+[1 2 3 4 5] 0 [+] fold
+# Result: 15 (sum)
+
+[1 2 3 4 5] 1 [*] fold
+# Result: 120 (product)
+
+# Step - execute for each element (leaves results on stack)
+[1 2 3] [dup *] step
+# Result: 1 4 9 (three separate values on stack)
+
+# Times - repeat N times
+1 5 [2 *] times
+# Result: 32 (1 * 2^5)
+
+# Combining combinators: sum of squares
+[1 2 3 4 5] [dup *] map 0 [+] fold
+# Result: 55 (1 + 4 + 9 + 16 + 25)

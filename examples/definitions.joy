@@ -1,0 +1,38 @@
+# User-Defined Words in Joy
+
+# Define square: x -> x*x
+[dup *] square define
+
+# Use square
+5 square
+# Result: 25
+
+# Define cube: x -> x*x*x
+[dup dup * *] cube define
+
+3 cube
+# Result: 27
+
+# Define using other definitions
+[square square] quad define
+
+2 quad
+# Result: 16 (2^4)
+
+# Define abs (absolute value)
+[dup 0 < [neg] [] ifte] myabs define
+
+-5 myabs
+# Result: 5
+
+# Define max of two numbers
+[dup [rollup] dip dup [rolldown] dip < [swap] [] ifte pop] mymax define
+
+3 7 mymax
+# Result: 7
+
+# Define factorial
+[[0 =] [pop 1] [dup 1 -] [*] linrec] factorial define
+
+5 factorial
+# Result: 120

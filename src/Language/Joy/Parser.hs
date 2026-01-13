@@ -53,9 +53,17 @@ parseString = do
 parseList :: Parser Joy
 parseList = Lexer.brackets (Lexer.lexeme p) where p = List <$> many joyVal
 
--- Identifier
+-- Identifier (includes symbolic operators like +, -, *, /, etc.)
 parseIdentifier :: Parser Joy
-parseIdentifier = Literal . Identifier <$> Lexer.lexeme (many1 letter)
+parseIdentifier = Literal . Identifier <$> Lexer.lexeme (wordIdent <|> symbolIdent)
+  where
+    -- Standard word identifiers (letters, digits, hyphens, underscores)
+    wordIdent = do
+      first <- letter
+      rest <- many (alphaNum <|> oneOf "-_?")
+      return (first : rest)
+    -- Symbolic operators
+    symbolIdent = many1 (oneOf "+-*/<>=!&|%^~")
 
 parseDefinition :: Parser Joy
 parseDefinition = do

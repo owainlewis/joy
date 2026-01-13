@@ -1,3 +1,6 @@
-"HELLO"
+# Hello World in Joy
+"Hello, World!"
 
-1 32 dup i swap dip [1 2] i dip
+# Simple arithmetic demo
+1 2 3 + +
+# Result: "Hello, World!" 6

@@ -1,0 +1,13 @@
+# Factorial using linear recursion
+# factorial(n) = if n == 0 then 1 else n * factorial(n-1)
+
+# Define factorial using linrec
+# linrec takes: [test] [base] [rec1] [rec2]
+# - test: is n == 0?
+# - base: return 1
+# - rec1: duplicate n, decrement
+# - rec2: multiply
+
+5 [0 =] [pop 1] [dup 1 -] [*] linrec
+
+# Result: 120
