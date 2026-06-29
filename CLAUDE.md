@@ -6,24 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Build the project
-stack build
+cabal v2-build all
 
 # Run the REPL
-stack run
+cabal v2-run joy-exe
 
 # Run tests
-stack test
+cabal v2-test all --test-show-details=direct
 
 # Run a specific test suite
-stack test --test-arguments "-m \"VMSpec\""
-stack test --test-arguments "-m \"ParserSpec\""
-stack test --test-arguments "-m \"IntegrationSpec\""
+cabal v2-test joy-test --test-options='--match VMSpec'
+cabal v2-test joy-test --test-options='--match ParserSpec'
+cabal v2-test joy-test --test-options='--match IntegrationSpec'
 
 # Execute a Joy program file
-stack run examples/factorial.joy
+cabal v2-run joy-exe -- examples/factorial.joy
 
 # Run Joy expression from command line
-stack run -- "1 2 +"
+cabal v2-run joy-exe -- 1 2 +
 ```
 
 ## Project Structure
@@ -146,7 +146,7 @@ Source Code → Parser → AST.Joy → Transform → VM.Joy → Evaluate → Sta
 [1 2 3] 0 [+] fold       # => 6
 
 # Conditionals
-5 [0 >] [1] [-1] ifte    # => 1
+5 [0 >] [pop 1] [pop -1] ifte    # => 1
 
 # Recursion (factorial)
 5 [0 =] [pop 1] [dup 1 -] [*] linrec  # => 120
@@ -165,7 +165,7 @@ Tests are in `test/Language/Joy/`:
 
 Run all tests:
 ```bash
-stack test
+cabal v2-test all --test-show-details=direct
 ```
 
 ## Common Development Tasks
@@ -184,11 +184,9 @@ stack test
 
 ### Debugging
 
-The REPL shows stack after each command:
+The REPL shows the result stack after each command. It persists definitions, not the data stack:
 ```
-joy> 1 2 3
-=> 1 2 3
-joy> +
+joy> 1 2 3 +
 => 1 5
 ```
 
