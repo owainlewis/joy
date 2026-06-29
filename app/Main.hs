@@ -8,14 +8,10 @@ import           Control.Monad                  ( unless )
 import qualified Data.Map.Strict               as M
 import qualified Data.Text                     as T
 import qualified Language.Joy                  as Joy
-import           Language.Joy.VirtualMachine    ( Joy(..)
-                                                , Stack
-                                                , VMError(..)
+import           Language.Joy.VirtualMachine    ( Stack
                                                 , VMState(..)
-                                                , runProgram
-                                                , runProgramWithEnv
+                                                , runProgramStateWithEnv
                                                 )
-import qualified Language.Joy.AST              as AST
 import           Language.Joy.Parser            ( readJoyExpr )
 import           System.Environment             ( getArgs )
 import           System.IO                      ( hFlush
@@ -27,29 +23,9 @@ formatStack :: Stack -> String
 formatStack [] = "[]"
 formatStack xs = unwords $ map show (reverse xs)
 
--- | Format a Joy value for display
-formatJoy :: Joy -> String
-formatJoy = show
-
 -- | Read a line of input with prompt
 readOnce :: IO String
 readOnce = putStr "joy> " >> hFlush stdout >> getLine
-
--- | Convert AST to VM program
-astToProgram :: [AST.Joy] -> [Joy]
-astToProgram = concatMap expandAst
-  where
-    expandAst :: AST.Joy -> [Joy]
-    expandAst (AST.Literal (AST.Boolean b))    = [JBool b]
-    expandAst (AST.Literal (AST.Char c))       = [JChar c]
-    expandAst (AST.Literal (AST.Integer i))    = [JInt i]
-    expandAst (AST.Literal (AST.Float f))      = [JFloat f]
-    expandAst (AST.Literal (AST.String s))     = [JString (T.pack s)]
-    expandAst (AST.Literal (AST.Identifier i)) = [JWord (T.pack i)]
-    expandAst (AST.List js)                    = [JQuote (concatMap expandAst js)]
-    expandAst (AST.Definition name body)       =
-      [JQuote (concatMap expandAst body), JWord (T.pack name), JWord "define"]
-    expandAst (AST.DefinitionList defs)        = concatMap expandAst defs
 
 -- | Main REPL loop
 repl :: IO ()
@@ -120,16 +96,14 @@ replWithEnv env = do
             putStrLn $ "Parse error: " ++ show err
             replWithEnv env
           Right ast -> do
-            let program = astToProgram ast
-            case runProgramWithEnv env program of
+            let program = Joy.astToProgram ast
+            case runProgramStateWithEnv env program of
               Left err -> do
                 putStrLn $ "Error: " ++ show err
                 replWithEnv env
-              Right stack -> do
-                putStrLn $ "=> " ++ formatStack stack
-                -- Note: In a full implementation, we'd extract new definitions
-                -- from the execution and add them to env
-                replWithEnv env
+              Right state -> do
+                putStrLn $ "=> " ++ formatStack (vmStack state)
+                replWithEnv (vmEnv state)
 
 -- | Trim whitespace from string
 trim :: String -> String

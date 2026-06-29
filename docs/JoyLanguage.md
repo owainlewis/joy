@@ -74,15 +74,13 @@ DEFINE
 This implementation of Joy currently supports:
 
 - Basic literal types: integers, floats, booleans, strings, characters
-- Stack manipulation: dup, swap, pop
-- List operations: cons, first, rest
-- Basic combinators: i, dip
+- Stack manipulation: dup, swap, pop, rollup, rolldown, rotate
+- List operations: cons, first, rest, map, filter, fold, take, drop
+- Basic combinators: i, dip, branch, choice, ifte
 - Definition syntax
 
 ## Future Enhancements
 
-- Additional arithmetic operations (+, -, *, /, etc.)
-- Full implementation of combinators (map, filter, etc.)
 - Library of standard functions
 - Module system
 - Better error handling and debugging

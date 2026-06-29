@@ -25,25 +25,34 @@ import           Text.Parsec.String             ( Parser )
 parseBoolean :: Parser Joy
 parseBoolean = Lexer.lexeme $ try parseTrue <|> parseFalse
  where
-  parseTrue  = (\_ -> Literal $ Boolean True) <$> string "true"
-  parseFalse = (\_ -> Literal $ Boolean False) <$> string "false"
+  parseTrue  = string "true" *> notFollowedBy identChar *> pure (Literal $ Boolean True)
+  parseFalse = string "false" *> notFollowedBy identChar *> pure (Literal $ Boolean False)
 
 parseChar :: Parser Joy
-parseChar = do
+parseChar = Lexer.lexeme $ do
   char '\''
-  c <- Lexer.lexeme $ anyChar
-  optional $ char '\''
+  c <- noneOf "'"
+  char '\''
   return $ Literal . Char $ c
 
 parseInteger :: Parser Joy
-parseInteger = Literal . Integer <$> Lexer.integer
+parseInteger = Lexer.lexeme $ do
+  sign <- option "" (string "-")
+  digits <- many1 digit
+  notFollowedBy (char '.')
+  return $ Literal . Integer . read $ sign ++ digits
 
 parseFloat :: Parser Joy
-parseFloat = Literal . Float <$> Lexer.float
+parseFloat = Lexer.lexeme $ do
+  sign <- option "" (string "-")
+  whole <- many1 digit
+  char '.'
+  fractional <- many1 digit
+  return $ Literal . Float . read $ sign ++ whole ++ "." ++ fractional
 
 -- String
 parseString :: Parser Joy
-parseString = do
+parseString = Lexer.lexeme $ do
   char '"'
   str <- many (noneOf "\"")
   char '"'
@@ -56,31 +65,36 @@ parseList = Lexer.brackets (Lexer.lexeme p) where p = List <$> many joyVal
 -- Identifier (includes symbolic operators like +, -, *, /, etc.)
 parseIdentifier :: Parser Joy
 parseIdentifier = Literal . Identifier <$> Lexer.lexeme (wordIdent <|> symbolIdent)
-  where
-    -- Standard word identifiers (letters, digits, hyphens, underscores)
-    wordIdent = do
-      first <- letter
-      rest <- many (alphaNum <|> oneOf "-_?")
-      return (first : rest)
-    -- Symbolic operators
-    symbolIdent = many1 (oneOf "+-*/<>=!&|%^~")
+
+identChar :: Parser Char
+identChar = alphaNum <|> oneOf "-_?"
+
+-- Standard word identifiers.
+wordIdent :: Parser String
+wordIdent = do
+  first <- letter
+  rest <- many identChar
+  return (first : rest)
+
+-- Symbolic operators.
+symbolIdent :: Parser String
+symbolIdent = many1 (oneOf "+-*/<>=!&|%^~")
 
 parseDefinition :: Parser Joy
 parseDefinition = do
-  k <- Lexer.lexeme (many1 letter)
+  k <- Lexer.lexeme wordIdent
   string "=="
   Lexer.whitespace
   forms <- many joyVal
-  optional $ char ';'
   return $ Definition k forms
 
 parseDefinitionList :: Parser Joy
 parseDefinitionList = do
   string "DEFINE"
   Lexer.whitespace
-  forms <- sepBy parseDefinition (Lexer.lexeme $ char ';')
+  forms <- sepEndBy parseDefinition (Lexer.lexeme $ char ';')
   Lexer.whitespace
-  char '.'
+  Lexer.lexeme $ char '.'
   return $ DefinitionList forms
 
 -- | Parser
@@ -88,10 +102,12 @@ joyVal :: Parser Joy
 joyVal =
   parseString
     <|> parseList
-    <|> (try parseFloat <|> parseInteger)
-    <|> (try parseBoolean)
+    <|> try parseDefinitionList
+    <|> try parseDefinition
+    <|> try parseFloat
+    <|> try parseInteger
+    <|> try parseBoolean
     <|> parseChar
-    <|> parseDefinitionList
     <|> parseIdentifier
 
 

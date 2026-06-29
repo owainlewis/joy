@@ -4,7 +4,6 @@ module Language.Joy.IntegrationSpec (spec) where
 import           Language.Joy
 import           Language.Joy.VirtualMachine (Joy(..))
 import           Test.Hspec
-import qualified Data.Text as T
 
 -- Helper to test source code evaluation
 shouldRunTo :: String -> [Joy] -> Expectation
@@ -118,10 +117,10 @@ spec = do
     ---------------------------------------------------------------------
     describe "conditionals" $ do
       it "ifte true branch" $ do
-        "5 [3 >] [100] [0] ifte" `shouldRunTo` [JInt 100]
+        "5 [3 >] [100] [0] ifte" `shouldRunTo` [JInt 100, JInt 5]
 
       it "ifte false branch" $ do
-        "2 [3 >] [100] [0] ifte" `shouldRunTo` [JInt 0]
+        "2 [3 >] [100] [0] ifte" `shouldRunTo` [JInt 0, JInt 2]
 
       it "choice true" $ do
         "true 1 2 choice" `shouldRunTo` [JInt 1]
@@ -178,6 +177,9 @@ spec = do
       it "defines and uses square" $ do
         "[dup *] square define 5 square" `shouldRunTo` [JInt 25]
 
+      it "defines words with DEFINE blocks" $ do
+        "DEFINE square == dup * ; quad == square square . 2 quad" `shouldRunTo` [JInt 16]
+
       it "defines and uses cube" $ do
         "[dup dup * *] cube define 3 cube" `shouldRunTo` [JInt 27]
 
@@ -189,10 +191,10 @@ spec = do
     ---------------------------------------------------------------------
     describe "type predicates" $ do
       it "integer?" $ do
-        "5 integer? pop" `shouldRunTo` [JBool True]
+        "5 integer? swap pop" `shouldRunTo` [JBool True]
 
       it "list?" $ do
-        "[1 2] list? pop" `shouldRunTo` [JBool True]
+        "[1 2] list? swap pop" `shouldRunTo` [JBool True]
 
     ---------------------------------------------------------------------
     -- Strings
