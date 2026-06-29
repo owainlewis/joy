@@ -1,356 +1,289 @@
 # Joy
 
-A Haskell implementation of the [Joy programming language](https://hypercubed.github.io/joy/html/j02maf.html), a purely functional, concatenative, stack-based language.
+A small Haskell interpreter for the [Joy programming language](https://hypercubed.github.io/joy/html/j02maf.html).
 
-## What is Joy?
-
-Joy is a functional programming language designed by Manfred von Thun. Unlike most languages, Joy uses **postfix notation** and **function composition through concatenation**. Programs are sequences of operations that transform a stack of values.
+Joy is a functional, concatenative, stack-based language. Programs are built by placing words next to each other. Each word transforms the stack.
 
 ```joy
-# Traditional: square(5) or 5.square()
-# Joy: 5 dup *
-
-5 dup *    # Push 5, duplicate it, multiply => 25
+5 dup *      # 25
+[1 2 3] [dup *] map
 ```
 
-Key characteristics:
-- **Stack-based**: All operations consume and produce values on a stack
-- **Concatenative**: Programs are composed by concatenation (juxtaposition)
-- **Quotations**: Code blocks `[...]` are first-class values
-- **Combinator-rich**: Powerful combinators like `map`, `fold`, `ifte`, `linrec`
+## Status
 
-## Quick Start
+This is an experimental interpreter, not a complete Joy system.
 
-### Building
+It is useful for:
+
+- learning how concatenative languages work
+- experimenting with quotations and combinators
+- using Joy examples in tests or small scripts
+- hacking on a compact Haskell interpreter
+
+It currently supports literals, quotations, stack words, arithmetic, comparisons, booleans, list and string operations, higher-order combinators, recursion combinators, user definitions, a REPL, and a small public Haskell API.
+
+## Requirements
+
+- GHC 9.6 or 9.8
+- `cabal-install`
+- `make`, optional
+
+The GitHub Actions build tests GHC 9.6 and 9.8. Cabal is the supported build path.
+
+If you do not have GHC and Cabal installed, use [GHCup](https://www.haskell.org/ghcup/).
+
+## Setup
 
 ```bash
-# Build the project
+git clone https://github.com/owainlewis/joy.git
+cd joy
+cabal update
 cabal v2-build all
+cabal v2-test all --test-show-details=direct
+```
 
-# Run tests
-cabal v2-test all
+You can also use the Makefile:
 
-# Start the REPL
+```bash
+make build
+make test
+make run
+```
+
+## Running Joy
+
+Start the REPL:
+
+```bash
 cabal v2-run joy-exe
 ```
 
-### Interactive REPL
-
-```
-$ cabal v2-run joy-exe
-Joy Interpreter v0.2.0
-Type :help for help, :quit to exit
-
-joy> 1 2 +
-=> 3
-
-joy> [1 2 3 4 5] [dup *] map
-=> [1 4 9 16 25]
-
-joy> 5 [0 =] [pop 1] [dup 1 -] [*] linrec
-=> 120
-```
-
-### Running Files
+Run a Joy file:
 
 ```bash
 cabal v2-run joy-exe -- examples/factorial.joy
 ```
 
-## Language Overview
+Run a short expression:
 
-### Literals
-
-```joy
-42          # Integer
-3.14        # Float
-true false  # Booleans
-'a'         # Character
-"hello"     # String
-[1 2 3]     # List/Quotation
+```bash
+cabal v2-run joy-exe -- 1 2 +
 ```
 
-### Stack Operations
+For shell-sensitive words like `*`, prefer the REPL or a `.joy` file.
 
-| Operation | Stack Effect | Description |
-|-----------|--------------|-------------|
-| `dup`     | `X → X X` | Duplicate top |
-| `pop`     | `X →` | Remove top |
-| `swap`    | `X Y → Y X` | Swap top two |
-| `rollup`  | `X Y Z → Z X Y` | Rotate three up |
-| `rolldown`| `X Y Z → Y Z X` | Rotate three down |
-| `rotate`  | `X Y Z → Z Y X` | Reverse three |
+## REPL Commands
 
-### Arithmetic
-
-```joy
-2 3 +       # => 5
-10 3 -      # => 7
-4 5 *       # => 20
-10 4 /      # => 2.5
-10 3 div    # => 3 (integer division)
-10 3 %      # => 1 (modulo)
--5 abs      # => 5
-5 neg       # => -5
+```text
+:help          Show help
+:load <file>   Load and execute a Joy file
+:env           Show defined words
+:clear         Clear all definitions
+:quit, :q      Exit
 ```
 
-### Comparison & Boolean
+Definitions entered in the REPL stay available until `:clear` or exit.
+
+## Stack Display
+
+The Haskell API stores the top of the stack at the head of the list.
+
+The CLI prints the stack in reading order, from bottom to top:
 
 ```joy
-3 5 <       # => true
-5 5 =       # => true
-3 5 !=      # => true
-
-true false and   # => false
-true false or    # => true
-true not         # => false
+joy> 1 2 swap
+=> 2 1
 ```
 
-### List Operations
+The same result through `runJoy` is:
 
-```joy
-1 [2 3] cons      # => [1 2 3]
-[1 2 3] first     # => 1
-[1 2 3] rest      # => [2 3]
-[1 2 3] uncons    # => 1 [2 3]
-[1 2] [3 4] concat # => [1 2 3 4]
-[1 2 3] size      # => 3
-[1 2 3] reverse   # => [3 2 1]
-[] null           # => true
+```haskell
+Right [JInt 1, JInt 2]
 ```
 
-### Quotation Execution
+## Quick Examples
 
-Quotations are code blocks that can be manipulated as data and executed:
+Arithmetic:
 
 ```joy
-# i - execute a quotation
-5 [dup *] i       # => 25
-
-# dip - execute quotation under the top value
-1 2 [10 +] dip    # => 2 11
-
-# x - duplicate quotation and execute
-[dup *] x         # => executes [dup *] with itself on stack
+2 3 +       # 5
+10 4 /      # 2.5
+5 dup *     # 25
 ```
 
-### Conditionals
+Lists and strings:
 
 ```joy
-# ifte - if-then-else
-5 [0 >] [1] [-1] ifte     # => 1 (5 > 0, so execute [1])
-
-# branch - boolean dispatch
-true [1] [2] branch       # => 1
-
-# choice - select value
-true 10 20 choice         # => 10
+1 [2 3] cons             # [1 2 3]
+[1 2 3] first            # 1
+[1 2 3] rest             # [2 3]
+[1 2 3] reverse          # [3 2 1]
+"hello" " world" concat  # "hello world"
 ```
 
-### Higher-Order Combinators
+Quotations:
 
 ```joy
-# map - apply to each element
-[1 2 3] [dup *] map           # => [1 4 9]
-
-# filter - select matching elements
-[1 2 3 4 5] [2 >] filter      # => [3 4 5]
-
-# fold - reduce list
-[1 2 3 4] 0 [+] fold          # => 10
-
-# step - apply to each, leave results on stack
-[1 2 3] [dup *] step          # => 1 4 9
-
-# times - repeat N times
-1 5 [2 *] times               # => 32
+5 [dup *] i              # 25
+1 2 [10 +] dip           # 11 2
 ```
 
-### Recursion Combinators
-
-Joy provides powerful recursion combinators that eliminate explicit recursion:
+Higher-order combinators:
 
 ```joy
-# linrec - linear recursion
-# [test] [base] [rec1] [rec2] linrec
-# If test is true, execute base. Otherwise: rec1, recurse, rec2
-
-# Factorial: 5! = 120
-5 [0 =] [pop 1] [dup 1 -] [*] linrec
-
-# primrec - primitive recursion
-# Operates on integers or lists with base case and combiner
-
-# binrec - binary recursion (divide and conquer)
-# Useful for algorithms like quicksort
+[1 2 3 4] [dup *] map    # [1 4 9 16]
+[1 2 3 4] [2 >] filter   # [3 4]
+[1 2 3 4] 0 [+] fold     # 10
+[1 2 3] [dup *] step     # 1 4 9
+1 5 [2 *] times          # 32
 ```
 
-### User Definitions
-
-Define new words using the `define` operation:
+Conditionals:
 
 ```joy
-# Define square
+5 [0 >] [pop 1] [pop -1] ifte  # 1
+true [1] [2] branch            # 1
+false 10 20 choice             # 20
+```
+
+Definitions:
+
+```joy
 [dup *] square define
-5 square                  # => 25
+5 square
 
-# Define using other definitions
-[square square] quad define
-2 quad                    # => 16
+DEFINE
+  square == dup * ;
+  quad == square square .
 
-# Define factorial
-[[0 =] [pop 1] [dup 1 -] [*] linrec] factorial define
-5 factorial               # => 120
+2 quad
 ```
 
-### Type Predicates
+Recursion:
 
 ```joy
-5 integer?      # => true 5
-3.14 float?     # => true 3.14
-[1 2] list?     # => true [1 2]
-"hi" string?    # => true "hi"
+5 [0 =] [pop 1] [dup 1 -] [*] linrec  # 120
 ```
 
-## Examples
+## Public API
 
-### Factorial
+```haskell
+import Language.Joy
+import Language.Joy.VirtualMachine (Joy(..))
 
-```joy
-# Using linrec
-5 [0 =] [pop 1] [dup 1 -] [*] linrec
-# => 120
+runJoy "1 2 +" == Right [JInt 3]
 ```
 
-### Fibonacci
+Main entry points:
 
-```joy
-# nth Fibonacci number using binrec
-10 [2 <] [] [dup 1 - swap 2 -] [+] binrec
-# => 55
+- `runJoy :: String -> Either String Stack`
+- `evalJoy :: String -> IO (Either VMError Stack)`
+- `runJoyFile :: FilePath -> IO (Either String Stack)`
+- `parseJoy :: String -> Either String [AST.Joy]`
+
+The API returns stack values with the top of the stack first.
+
+## Project Layout
+
+```text
+src/Language/Joy/
+  Joy.hs              Public API and AST to VM transform
+  AST.hs              Parser AST
+  Lexer.hs            Parsec lexer
+  Parser.hs           Joy parser
+  Core.hs             Compatibility types and re-exports
+  VirtualMachine.hs   Stack VM and primitives
+
+app/Main.hs           CLI and REPL
+test/Language/Joy/    Parser, VM, and integration tests
+examples/             Runnable Joy programs
+docs/JoyLanguage.md   Language notes for this interpreter
 ```
-
-### Sum of Squares
-
-```joy
-[1 2 3 4 5] [dup *] map 0 [+] fold
-# => 55
-```
-
-### Quicksort
-
-```joy
-# Using binrec for divide-and-conquer
-[small] [] [uncons [>] split] [swapd concat cons concat] binrec
-```
-
-### Filter and Transform
-
-```joy
-# Get squares of even numbers from 1-10
-[1 2 3 4 5 6 7 8 9 10]
-  [2 % 0 =] filter      # Keep evens: [2 4 6 8 10]
-  [dup *] map           # Square them: [4 16 36 64 100]
-```
-
-## Architecture
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Source    │────▶│   Parser    │────▶│     AST     │
-│    Code     │     │  (Parsec)   │     │             │
-└─────────────┘     └─────────────┘     └─────────────┘
-                                              │
-                                              ▼
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Result    │◀────│  Evaluator  │◀────│  Transform  │
-│   Stack     │     │    (VM)     │     │  AST → Joy  │
-└─────────────┘     └─────────────┘     └─────────────┘
-```
-
-### Module Structure
-
-| Module | Description |
-|--------|-------------|
-| `Language.Joy` | Main API: `runJoy`, `evalJoy`, `runJoyFile` |
-| `Language.Joy.VirtualMachine` | Stack-based VM with all primitives |
-| `Language.Joy.Parser` | Parsec-based Joy parser |
-| `Language.Joy.Lexer` | Lexical analysis |
-| `Language.Joy.AST` | Abstract syntax tree types |
-| `Language.Joy.Core` | Core types (re-exports from VM) |
 
 ## Development
 
-Build everything:
+Build:
 
 ```bash
 cabal v2-build all
 ```
 
-Run the test suite:
+Test:
 
 ```bash
 cabal v2-test all --test-show-details=direct
 ```
 
-Run the interpreter:
+Open a REPL for the library:
 
 ```bash
-cabal v2-run joy-exe
+cabal v2-repl joy
 ```
 
-Run a source file:
+Run formatting and whitespace checks before opening a PR:
 
 ```bash
-cabal v2-run joy-exe -- examples/factorial.joy
+git diff --check
 ```
 
-GitHub Actions runs the Cabal build and test suite on GHC 9.6 and 9.8.
+GitHub Actions runs Cabal build and test jobs for GHC 9.6 and 9.8.
 
-## Complete Primitive Reference
+## Primitive Reference
 
-### Stack Manipulation
+Stack:
+
 `dup`, `pop`, `swap`, `rollup`, `rolldown`, `rotate`, `dupd`, `swapd`, `popd`, `stack`, `unstack`, `newstack`, `id`
 
-### Arithmetic
+Arithmetic:
+
 `+`, `-`, `*`, `/`, `%`, `div`, `rem`, `abs`, `neg`, `sign`, `max`, `min`, `succ`, `pred`
 
-### Comparison
+Comparison:
+
 `<`, `>`, `<=`, `>=`, `=`, `!=`, `<>`
 
-### Boolean
+Boolean:
+
 `and`, `or`, `not`, `xor`
 
-### List Operations
+Lists and strings:
+
 `cons`, `swons`, `first`, `rest`, `uncons`, `unswons`, `concat`, `size`, `null`, `small`, `reverse`, `at`, `of`, `drop`, `take`
 
-### Quotation Execution
+Quotation execution:
+
 `i`, `x`, `dip`, `dipd`, `dipdd`, `app1`, `app2`, `nullary`, `unary`, `binary`, `ternary`
 
-### Conditionals
+Conditionals:
+
 `ifte`, `cond`, `choice`, `branch`
 
-### Higher-Order
+Higher-order:
+
 `map`, `filter`, `fold`, `step`, `split`, `times`
 
-### Recursion
+Recursion:
+
 `linrec`, `primrec`, `tailrec`, `genrec`, `binrec`
 
-### Type Predicates
+Type predicates:
+
 `integer?`, `float?`, `number?`, `char?`, `string?`, `list?`, `leaf?`, `logical?`
 
-### Type Conversion
+Conversion:
+
 `ord`, `chr`, `strtol`
 
-### Miscellaneous
+Miscellaneous:
+
 `unit`, `pair`, `unpair`, `infra`, `cleave`, `define`
 
-## Resources
+## Known Limits
 
-- [Joy Language Homepage](https://hypercubed.github.io/joy/html/j02maf.html)
-- [Mathematical Foundations of Joy](http://www.kevinalbrecht.com/code/joy-mirror/j02maf.html)
-- [Joy Manual](http://www.kevinalbrecht.com/code/joy-mirror/plain-manual.html)
-- [Concatenative Languages Wiki](https://concatenative.org/)
+- Cabal is supported. Stack is not maintained for this repo.
+- This is not a full implementation of the historical Joy language.
+- IO words such as `put`, `putch`, and `print` are placeholders in the pure VM.
+- `:load` executes a file and prints the result, but it does not import definitions into the current REPL session.
 
 ## License
 

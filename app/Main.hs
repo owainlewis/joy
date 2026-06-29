@@ -7,12 +7,14 @@ where
 import           Control.Monad                  ( unless )
 import qualified Data.Map.Strict               as M
 import qualified Data.Text                     as T
+import           Data.Version                   ( showVersion )
 import qualified Language.Joy                  as Joy
 import           Language.Joy.VirtualMachine    ( Stack
                                                 , VMState(..)
                                                 , runProgramStateWithEnv
                                                 )
 import           Language.Joy.Parser            ( readJoyExpr )
+import           Paths_joy                      ( version )
 import           System.Environment             ( getArgs )
 import           System.IO                      ( hFlush
                                                 , stdout
@@ -127,7 +129,7 @@ main = do
 
     -- Interactive mode
     [] -> do
-      putStrLn "Joy Interpreter v0.2.0"
+      putStrLn $ "Joy Interpreter v" ++ showVersion version
       putStrLn "Type :help for help, :quit to exit"
       putStrLn ""
       repl

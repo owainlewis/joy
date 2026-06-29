@@ -1,5 +1,5 @@
 # Basic Joy Examples
-# Run with: stack run < examples/basics.joy
+# Run with: cabal v2-run joy-exe -- examples/basics.joy
 
 # Simple arithmetic
 1 2 +         # => 3

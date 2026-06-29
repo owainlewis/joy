@@ -1,86 +1,178 @@
-# The Joy Programming Language
+# Joy Language Notes
 
-Joy is a purely functional programming language created by Manfred von Thun that is based on composition of functions rather than application. It is a member of the family of concatenative programming languages.
+These notes describe the Joy subset implemented in this repository.
 
-## Core Concepts
+Joy programs transform a stack. Literals push values. Words either run built-in primitives or user-defined quotations.
 
-Joy is stack-based, meaning that all operations manipulate a stack of values. Unlike most programming languages, Joy uses postfix notation, where operators come after their operands.
+## Values
 
-### Stack Manipulation
-
-The basic stack operations in Joy:
-
-- `dup`: Duplicates the top element of the stack: `[X | S] => [X X | S]`
-- `swap`: Swaps the top two elements of the stack: `[X Y | S] => [Y X | S]`
-- `pop`: Removes the top element from the stack: `[X | S] => [S]`
-- `stack`: Pushes the entire stack onto itself: `[S] => [S | S]`
-
-### Quotations
-
-Joy uses quotations (enclosed in square brackets) to represent code that can be passed around as data:
-
-```
-[2 +]   # A quotation that adds 2 to a number
+```joy
+42
+3.14
+true
+false
+'a'
+"hello"
+[1 2 3]
 ```
 
-### Combinators
+Square brackets create quotations. A quotation is both data and executable code.
 
-Combinators are functions that operate on quotations:
+## Comments
 
-- `i`: Executes a quotation: `[[P] | S] => execute P on S`
-- `dip`: Executes a quotation after temporarily removing the top element: `[X [P] | S] => [X | execute P on S]`
-- `app2`: Applies a quotation to two elements: `[[P] X Y | S] => [P(X) P(Y) | S]`
-- `map`: Applies a quotation to each element of a list
-
-### Defining Functions
-
-Joy allows definition of new functions:
-
+```joy
+# Everything after # is a comment.
+1 2 +
 ```
+
+## Stack Order
+
+Internally, the VM stores the top of the stack first.
+
+The CLI prints stacks from bottom to top:
+
+```joy
+joy> 1 2 swap
+=> 2 1
+```
+
+## Core Stack Words
+
+```joy
+5 dup       # 5 5
+1 2 swap   # 2 1
+1 2 pop    # 1
+```
+
+Other stack words include `rollup`, `rolldown`, `rotate`, `dupd`, `swapd`, `popd`, `stack`, `unstack`, `newstack`, and `id`.
+
+## Arithmetic
+
+```joy
+2 3 +       # 5
+5 2 -       # 3
+4 5 *       # 20
+20 4 /      # 5.0
+10 3 div    # 3
+10 3 %      # 1
+```
+
+`/` always returns a float. `div`, `rem`, and `%` are integer operations.
+
+## Lists And Strings
+
+```joy
+1 [2 3] cons             # [1 2 3]
+[1 2 3] first            # 1
+[1 2 3] rest             # [2 3]
+[1 2 3] reverse          # [3 2 1]
+"hello" size             # 5
+"hello" " world" concat  # "hello world"
+```
+
+List and string words include `concat`, `size`, `null`, `small`, `reverse`, `at`, `of`, `drop`, and `take`.
+
+## Quotations
+
+Use `i` to execute a quotation:
+
+```joy
+5 [dup *] i
+```
+
+Use `dip` to run a quotation under the top value:
+
+```joy
+1 2 [10 +] dip  # 11 2
+```
+
+Other quotation words include `x`, `dipd`, `dipdd`, `app1`, `app2`, `nullary`, `unary`, `binary`, and `ternary`.
+
+## Conditionals
+
+`ifte` takes three quotations: condition, then branch, else branch.
+
+The condition runs against the current stack. The original stack is restored before the selected branch runs.
+
+```joy
+5 [0 >] [pop 1] [pop -1] ifte
+```
+
+`branch` dispatches on a boolean:
+
+```joy
+true [1] [2] branch
+```
+
+`choice` selects one of two values:
+
+```joy
+false 10 20 choice  # 20
+```
+
+## Higher-Order Words
+
+```joy
+[1 2 3] [dup *] map       # [1 4 9]
+[1 2 3 4] [2 >] filter    # [3 4]
+[1 2 3 4] 0 [+] fold      # 10
+[1 2 3] [dup *] step      # 1 4 9
+1 5 [2 *] times           # 32
+```
+
+`map`, `filter`, and `fold` restore the surrounding stack for each item. `step` leaves each result on the stack.
+
+## Definitions
+
+Inline definition:
+
+```joy
+[dup *] square define
+5 square
+```
+
+Definition block:
+
+```joy
 DEFINE
-    square == dup * ;    # Define a function that squares a number
-    cube == dup dup * * .  # Define a function that cubes a number
+  square == dup * ;
+  quad == square square .
+
+2 quad
 ```
 
-## Examples
+Definitions are stored in the VM environment. In the REPL, definitions persist until `:clear` or exit.
 
-### Simple Arithmetic
+## Recursion
 
-```
-2 3 +     # Result: 5
-5 2 -     # Result: 3
-4 5 *     # Result: 20
-20 4 /    # Result: 5
-```
+Factorial with `linrec`:
 
-### Working with Lists
-
-```
-[1 2 3] [4 5 6] concat   # Result: [1 2 3 4 5 6]
-[1 2 3] first            # Result: 1
-[1 2 3] rest             # Result: [2 3]
+```joy
+5 [0 =] [pop 1] [dup 1 -] [*] linrec
 ```
 
-### Using Combinators
+Supported recursion words:
 
+- `linrec`
+- `primrec`
+- `tailrec`
+- `genrec`
+- `binrec`
+
+## Type Predicates
+
+Predicates preserve the original value and push a boolean:
+
+```joy
+5 integer?      # 5 true
+[1 2] list?     # [1 2] true
+"hi" string?    # "hi" true
 ```
-5 [2 +] i        # Result: 7
-5 6 [*] i        # Result: 30
-5 [2 *] [3 +] compose i  # Result: 13
-```
 
-## Implemented Features
+Supported predicates:
 
-This implementation of Joy currently supports:
+`integer?`, `float?`, `number?`, `char?`, `string?`, `list?`, `leaf?`, `logical?`
 
-- Basic literal types: integers, floats, booleans, strings, characters
-- Stack manipulation: dup, swap, pop, rollup, rolldown, rotate
-- List operations: cons, first, rest, map, filter, fold, take, drop
-- Basic combinators: i, dip, branch, choice, ifte
-- Definition syntax
+## Not Full Joy
 
-## Future Enhancements
-
-- Library of standard functions
-- Module system
-- Better error handling and debugging
+This interpreter does not implement the full historical Joy language. If a word is not listed in the README primitive reference, treat it as unsupported.
