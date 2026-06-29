@@ -25,19 +25,19 @@ Key characteristics:
 
 ```bash
 # Build the project
-stack build
+cabal v2-build all
 
 # Run tests
-stack test
+cabal v2-test all
 
 # Start the REPL
-stack run
+cabal v2-run joy-exe
 ```
 
 ### Interactive REPL
 
 ```
-$ stack run
+$ cabal v2-run joy-exe
 Joy Interpreter v0.2.0
 Type :help for help, :quit to exit
 
@@ -54,7 +54,7 @@ joy> 5 [0 =] [pop 1] [dup 1 -] [*] linrec
 ### Running Files
 
 ```bash
-stack run examples/factorial.joy
+cabal v2-run joy-exe -- examples/factorial.joy
 ```
 
 ## Language Overview
@@ -278,6 +278,34 @@ Define new words using the `define` operation:
 | `Language.Joy.Lexer` | Lexical analysis |
 | `Language.Joy.AST` | Abstract syntax tree types |
 | `Language.Joy.Core` | Core types (re-exports from VM) |
+
+## Development
+
+Build everything:
+
+```bash
+cabal v2-build all
+```
+
+Run the test suite:
+
+```bash
+cabal v2-test all --test-show-details=direct
+```
+
+Run the interpreter:
+
+```bash
+cabal v2-run joy-exe
+```
+
+Run a source file:
+
+```bash
+cabal v2-run joy-exe -- examples/factorial.joy
+```
+
+GitHub Actions runs the Cabal build and test suite on GHC 9.6 and 9.8.
 
 ## Complete Primitive Reference
 

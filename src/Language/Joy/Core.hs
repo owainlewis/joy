@@ -14,17 +14,29 @@ module Language.Joy.Core
   , Stack
   , Env
   , VMState(..)
-  , VMError(..)
+  , VMError
   , runProgram
   , runProgramWithEnv
+  , runProgramStateWithEnv
   -- * Legacy exports (for backwards compatibility)
   , Program
   , ProgramError(..)
+  , vmErrorToProgramError
   )
 where
 
-import Language.Joy.VirtualMachine (Joy(..), Stack, Env, VMState(..), VMError(..), runProgram, runProgramWithEnv)
 import qualified Data.Text as T
+import           Language.Joy.VirtualMachine
+  ( Env
+  , Joy(..)
+  , Stack
+  , VMError
+  , VMState(..)
+  , runProgram
+  , runProgramStateWithEnv
+  , runProgramWithEnv
+  )
+import qualified Language.Joy.VirtualMachine as VM
 
 -- | A Joy program is a list of Joy values
 type Program = [Joy]
@@ -46,10 +58,10 @@ instance Show ProgramError where
 
 -- | Convert VMError to ProgramError
 vmErrorToProgramError :: VMError -> ProgramError
-vmErrorToProgramError (StackUnderflow _ expected actual) = ArityError expected actual
-vmErrorToProgramError (Language.Joy.VirtualMachine.TypeError _ expected actual) =
+vmErrorToProgramError (VM.StackUnderflow _ expected actual) = ArityError expected actual
+vmErrorToProgramError (VM.TypeError _ expected actual) =
   TypeError (T.unpack expected) (T.unpack actual)
-vmErrorToProgramError (UndefinedWord w) = UndefinedError (T.unpack w)
-vmErrorToProgramError DivisionByZero = TypeError "non-zero" "zero"
-vmErrorToProgramError (EmptyQuotation op) = ArityError 1 0
-vmErrorToProgramError (RuntimeError msg) = UndefinedError (T.unpack msg)
+vmErrorToProgramError (VM.UndefinedWord w) = UndefinedError (T.unpack w)
+vmErrorToProgramError VM.DivisionByZero = TypeError "non-zero" "zero"
+vmErrorToProgramError (VM.EmptyQuotation _) = ArityError 1 0
+vmErrorToProgramError (VM.RuntimeError msg) = UndefinedError (T.unpack msg)

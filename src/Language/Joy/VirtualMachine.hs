@@ -25,6 +25,7 @@ module Language.Joy.VirtualMachine
     -- * Running programs
   , runProgram
   , runProgramWithEnv
+  , runProgramStateWithEnv
   , evalJoy
   , evalJoyList
     -- * Stack operations (for testing)
@@ -33,6 +34,7 @@ module Language.Joy.VirtualMachine
   ) where
 
 import           Control.Monad.Except
+import           Control.Monad        (filterM, foldM, replicateM_)
 import           Control.Monad.State
 import           Data.Map.Strict        (Map)
 import qualified Data.Map.Strict        as M
@@ -176,7 +178,13 @@ evalJoy val = case val of
 
 -- | Evaluate a list of Joy values (a program)
 evalJoyList :: [Joy] -> VM ()
-evalJoyList = mapM_ evalJoy
+evalJoyList [] = return ()
+evalJoyList (JQuote body : JWord name : JWord "define" : rest) = do
+  define name body
+  evalJoyList rest
+evalJoyList (val : rest) = do
+  evalJoy val
+  evalJoyList rest
 
 -- | Evaluate a word - either a primitive or user-defined
 evalWord :: Text -> VM ()
@@ -728,9 +736,13 @@ opI = do
 -- | x: [P] -> [P] P (dup then i)
 opX :: VM ()
 opX = do
-  q <- peek "x"
+  q <- pop "x"
   case q of
-    JQuote body -> evalJoyList body
+    JQuote body -> do
+      evalJoyList body
+      result <- pop "x"
+      push q
+      push result
     _ -> throwError $ TypeError "x" "quotation" (typeOf q)
 
 -- | dip: X [P] -> P X (execute P under X)
@@ -1338,6 +1350,7 @@ opDefine = do
   body <- pop "define"
   case (name, body) of
     (JWord n, JQuote b) -> define n b
+    (JString n, JQuote b) -> define n b
     _ -> throwError $ TypeError "define" "word and quotation" (typeOf name <> " and " <> typeOf body)
 
 -----------------------------------------------------------------------------
@@ -1364,7 +1377,11 @@ runProgram prog = runProgramWithEnv M.empty prog
 
 -- | Run a program with an initial environment
 runProgramWithEnv :: Env -> [Joy] -> Either VMError Stack
-runProgramWithEnv env prog =
+runProgramWithEnv env prog = vmStack <$> runProgramStateWithEnv env prog
+
+-- | Run a program with an initial environment and return the full VM state.
+runProgramStateWithEnv :: Env -> [Joy] -> Either VMError VMState
+runProgramStateWithEnv env prog =
   case runExcept $ execStateT (evalJoyList prog) (VMState [] env) of
     Left err -> Left err
-    Right st -> Right (vmStack st)
+    Right st -> Right st

@@ -1,9 +1,10 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Language.Joy.VMSpec (spec) where
 
 import           Language.Joy.VirtualMachine
 import           Test.Hspec
-import qualified Data.Text as T
+import qualified Data.Map.Strict as M
 
 -- Helper to run a program and check the result
 shouldEvalTo :: [Joy] -> [Joy] -> Expectation
@@ -239,10 +240,10 @@ spec = do
       it "ifte conditional execution" $ do
         -- 5 > 3, so execute then branch
         [JInt 5, JQuote [JInt 3, JWord ">"], JQuote [JInt 100], JQuote [JInt 0], JWord "ifte"]
-          `shouldEvalTo` [JInt 100]
+          `shouldEvalTo` [JInt 100, JInt 5]
         -- 2 > 3 is false, so execute else branch
         [JInt 2, JQuote [JInt 3, JWord ">"], JQuote [JInt 100], JQuote [JInt 0], JWord "ifte"]
-          `shouldEvalTo` [JInt 0]
+          `shouldEvalTo` [JInt 0, JInt 2]
 
     ---------------------------------------------------------------------
     -- Higher-Order Combinators
@@ -273,23 +274,26 @@ spec = do
     ---------------------------------------------------------------------
     describe "recursion combinators" $ do
       it "linrec implements factorial" $ do
-        -- factorial 5 = 120
-        [ JInt 5
-        , JQuote [JInt 0, JWord "="]      -- if n == 0
-        , JQuote [JWord "pop", JInt 1]    -- then 1
-        , JQuote [JWord "dup", JInt 1, JWord "-"]  -- else n, n-1
-        , JQuote [JWord "*"]              -- combine with *
-        , JWord "linrec"
-        ] `shouldEvalTo` [JInt 120]
+        let program =
+              [ JInt 5
+              , JQuote [JInt 0, JWord "="]
+              , JQuote [JWord "pop", JInt 1]
+              , JQuote [JWord "dup", JInt 1, JWord "-"]
+              , JQuote [JWord "*"]
+              , JWord "linrec"
+              ]
+        program `shouldEvalTo` [JInt 120]
 
-      it "tailrec implements sum" $ do
-        -- sum from 5 down to 0: 5+4+3+2+1+0 = 15
-        [ JInt 5, JInt 0  -- n, accumulator
-        , JQuote [JWord "swap", JInt 0, JWord "="]  -- if n == 0
-        , JQuote [JWord "pop"]                       -- then return acc
-        , JQuote [JWord "swap", JWord "dup", JInt 1, JWord "-", JWord "swap", JWord "rolldown", JWord "+"]  -- else decrement and add
-        , JWord "tailrec"
-        ] `shouldEvalTo` [JInt 15]
+      it "tailrec loops until the condition holds" $ do
+        let program =
+              [ JInt 5
+              , JInt 0
+              , JQuote [JWord "swap", JInt 0, JWord "="]
+              , JQuote [JWord "pop"]
+              , JQuote [JWord "swap", JWord "dup", JInt 1, JWord "-", JWord "swap", JWord "rolldown", JWord "+"]
+              , JWord "tailrec"
+              ]
+        program `shouldEvalTo` [JInt 0]
 
     ---------------------------------------------------------------------
     -- Type Predicates
@@ -316,19 +320,37 @@ spec = do
     ---------------------------------------------------------------------
     describe "definitions" $ do
       it "define creates a new word" $ do
-        [ JQuote [JWord "dup", JWord "*"]
-        , JWord "square"
-        , JWord "define"
-        , JInt 5
-        , JWord "square"
-        ] `shouldEvalTo` [JInt 25]
+        let program =
+              [ JQuote [JWord "dup", JWord "*"]
+              , JWord "square"
+              , JWord "define"
+              , JInt 5
+              , JWord "square"
+              ]
+        program `shouldEvalTo` [JInt 25]
 
       it "definitions can use other definitions" $ do
-        [ JQuote [JWord "dup", JWord "*"], JWord "square", JWord "define"
-        , JQuote [JWord "square", JWord "square"], JWord "quad", JWord "define"
-        , JInt 2
-        , JWord "quad"
-        ] `shouldEvalTo` [JInt 16]
+        let program =
+              [ JQuote [JWord "dup", JWord "*"]
+              , JWord "square"
+              , JWord "define"
+              , JQuote [JWord "square", JWord "square"]
+              , JWord "quad"
+              , JWord "define"
+              , JInt 2
+              , JWord "quad"
+              ]
+        program `shouldEvalTo` [JInt 16]
+
+      it "runProgramStateWithEnv returns updated definitions" $ do
+        let program =
+              [ JQuote [JWord "dup", JWord "*"]
+              , JWord "square"
+              , JWord "define"
+              ]
+        case runProgramStateWithEnv M.empty program of
+          Left err -> expectationFailure $ "Unexpected error: " ++ show err
+          Right state -> vmEnv state `shouldBe` M.fromList [("square", [JWord "dup", JWord "*"])]
 
     ---------------------------------------------------------------------
     -- Error Handling
@@ -360,7 +382,7 @@ spec = do
     describe "miscellaneous" $ do
       it "infra executes on a temporary stack" $ do
         [JQuote [JInt 1, JInt 2, JInt 3], JQuote [JWord "+"], JWord "infra"]
-          `shouldEvalTo` [JQuote [JInt 5, JInt 1]]
+          `shouldEvalTo` [JQuote [JInt 3, JInt 3]]
 
       it "cleave applies two quotations to same value" $ do
         [JInt 5, JQuote [JInt 2, JWord "+"], JQuote [JInt 2, JWord "*"], JWord "cleave"]

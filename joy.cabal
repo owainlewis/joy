@@ -1,15 +1,9 @@
-cabal-version: 1.12
-
--- This file has been generated from package.yaml by hpack version 0.33.0.
---
--- see: https://github.com/sol/hpack
---
--- hash: e9445c04c5611593cafb3a258a15a1951a1b59b4abd474700cccceb87f0d8888
+cabal-version: 2.4
 
 name:           joy
 version:        0.1.0.0
-synopsis:       A compiler / interpreter for the Joy programing language
-description:    Please see the README on GitHub at <https://github.com/githubuser/joy#readme>
+synopsis:       An interpreter for the Joy programming language
+description:    Please see the README on GitHub at <https://github.com/owainlewis/joy#readme>
 category:       Language
 homepage:       https://github.com/owainlewis/joy#readme
 bug-reports:    https://github.com/owainlewis/joy/issues
@@ -69,6 +63,7 @@ test-suite joy-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Language.Joy.IntegrationSpec
       Language.Joy.ParserSpec
       Language.Joy.VMSpec
       Paths_joy

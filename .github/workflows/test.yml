@@ -1,0 +1,28 @@
+name: test
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  cabal:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc: ["9.6", "9.8"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: latest
+      - name: Update package index
+        run: cabal update
+      - name: Configure
+        run: cabal v2-configure --enable-tests
+      - name: Build
+        run: cabal v2-build all
+      - name: Test
+        run: cabal v2-test all --test-show-details=direct
